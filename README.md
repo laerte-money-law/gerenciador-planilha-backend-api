@@ -43,7 +43,13 @@ $ npm run start:dev
 # production mode
 $ npm run start:prod
 ```
+```bash
+# create migration
+$ npm run migration:generate -- src/database/migrations/<file name>
 
+# run migrations
+$ npm run migration:run
+```
 ## Run tests
 
 ```bash
