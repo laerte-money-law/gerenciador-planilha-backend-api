@@ -12,7 +12,7 @@ export class UserRepository {
         private readonly teamRepository: TeamRepository,
     ){}
 
-    async createUser(newUser: User){
+    async createUser(newUser: User): Promise<User>{
         try{
             console.log(newUser)
             const team = await this.teamRepository.findById(newUser.team.id);
@@ -25,4 +25,17 @@ export class UserRepository {
             throw error;
         }
     }
+
+    async findUserByEmail(email: string):Promise<User | null > {
+        try{
+            return await this.userRepository.findOne({
+                where: { email },
+                relations: ['team']
+            });
+        }catch(error) {
+            if(error instanceof QueryFailedError) throw new ConflictException(error.message);
+            throw error;
+        }
+    }
+
 }

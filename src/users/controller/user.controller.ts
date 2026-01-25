@@ -9,7 +9,9 @@ export class UserController {
         ){}
     
         @Post('users')
-        createTeam(@Body() newUser: CreateUserDto){
+        createUser(@Body() newUser: CreateUserDto){
             return this.userService.createUser(newUser);
         }
+
+        
 }

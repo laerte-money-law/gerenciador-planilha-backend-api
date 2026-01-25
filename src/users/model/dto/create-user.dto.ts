@@ -1,5 +1,6 @@
 import { Expose } from "class-transformer";
-import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsEmail, IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { Role } from "src/security/role/role.enum";
 
 export class CreateUserDto {
     @IsString()
@@ -15,4 +16,8 @@ export class CreateUserDto {
     @Expose({ name: 'team_id' })
     @IsNumber()
     teamId: number
+
+    @IsNotEmpty()
+    @IsEnum(Role)
+    role: Role
 }
