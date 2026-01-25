@@ -15,7 +15,7 @@ import { TeamModule } from 'src/team/team.module';
     providers: [UserRepository, UserService],
     controllers:[UserController],
     exports: [
-        UserService
+        UserService,
     ]
 })
 export class UsersModule {}

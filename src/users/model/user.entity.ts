@@ -1,4 +1,3 @@
-import { Exclude } from "class-transformer";
 import { Team } from "../../team/model/team.entity";
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
@@ -22,4 +21,7 @@ export class User {
 
   @CreateDateColumn()
   created_at: Date;
+
+  @Column({ name: 'role',  nullable: true, default: "USER"})
+  role: string;
 }
