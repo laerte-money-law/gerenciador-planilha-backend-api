@@ -1,4 +1,4 @@
-import {  Controller, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {  Controller, Get, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -23,11 +23,22 @@ export class SpreadsheetController {
 
     ) {
     
-      const { userId, teamId } = req.user;
-      console.log(userId, teamId)
-      
+      const { userId, teamId } = req.user;      
       return this.spreadsheetService.importCsv(file, userId, teamId);
     }
+
+    @Get('spreadsheets')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(Role.ADMIN, Role.USER)
+    async getSpreadsheets(
+      @Req() req: any,
+      @Query('page') page?: string,
+      @Query('limit') limit?: string,
+    ){
+      const { teamId, role } = req.user;      
+      return this.spreadsheetService.getSpreadsheets(role, teamId, Number(page), Number(limit));
+    }
+
 
   /*@Get(':id/export')
   async export(

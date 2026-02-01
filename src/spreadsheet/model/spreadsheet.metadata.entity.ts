@@ -12,10 +12,10 @@ export class SpreadsheetMetadata {
   originalFileName: string;
 
   @Column({ name: 'team_id', type: 'int' })
-  teamId: string;
+  teamId: number;
 
   @Column({ name: 'created_by', type: 'int' })
-  createdBy: string;
+  createdBy: number;
 
   @Column({
     name: 'created_at',
