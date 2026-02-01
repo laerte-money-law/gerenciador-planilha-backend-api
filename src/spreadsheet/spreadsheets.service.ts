@@ -1,153 +1,126 @@
 import { Injectable } from '@nestjs/common';
-import { CellWriteRepository } from './repository/cell/cell.write.repository';
-import { SpreadsheetReadRepository } from './repository/spreadsheet.read.repository';
-import { ColumnWriteRepository } from './repository/cell/column.write.repository';
-import { ColumnReadRepository } from './repository/cell/column.read.repository';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { parse } from 'csv-parse/sync';
-
-type ExportRow = {
-  row_id: number;
-  row_order: number;
-  column_id: number;
-  column_title: string;
-  column_order: number;
-  value: string | null;
-};
-
+import { InjectRepository } from '@nestjs/typeorm';
+import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
 
 @Injectable()
 export class SpreadsheetService {
   constructor(
-    private readonly cellWriteRepository: CellWriteRepository,
-    private readonly spreadsheetReadRepository: SpreadsheetReadRepository,
-    private readonly columnWriteRepository: ColumnWriteRepository,
-    private readonly columnReadRepository: ColumnReadRepository,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    @InjectRepository(SpreadsheetMetadata)
+    private readonly metadataRepository: Repository<SpreadsheetMetadata>,
   ) {}
 
-  async updateCell(params: {
-    rowId: number;
-    columnId: number;
-    value: string | null;
-    userId: number;
-  }): Promise<void> {
-    await this.cellWriteRepository.upsert(params);
-  }
+  async importCsv(
+    file: Express.Multer.File,
+    userId: string,
+    teamId: string,
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
 
-  async getRows(params: {
-    spreadsheetId: number;
-    status: string;
-    page: number;
-    pageSize: number;
-  }) {
-    const offset = (params.page - 1) * params.pageSize;
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const rows = await this.spreadsheetReadRepository.getPagedRows({
-      spreadsheetId: params.spreadsheetId,
-      status: params.status,
-      offset,
-      limit: params.pageSize,
-    });
+    try {
+      // PARSE CSV 
 
-    const grouped = new Map<number, any>();
+      const content = file.buffer.toString('utf-8');
 
-    for (const item of rows) {
-      if (!grouped.has(item.row_id)) {
-        grouped.set(item.row_id, {
-          rowId: item.row_id,
-          status: item.row_status,
-          cells: [],
-        });
+      const records: string[][] = parse(content, {
+        skip_empty_lines: true,
+      });
+
+      const [rawHeader, ...rows] = records;
+
+      if (!rawHeader || rawHeader.length === 0) {
+        throw new Error('CSV sem header');
       }
 
-      grouped.get(item.row_id).cells.push({
-        columnId: item.column_id,
-        columnTitle: item.column_title,
-        value: item.value,
+      const columns = rawHeader.map(this.sanitizeColumn);
+
+      // CREATE TABLE
+
+      const tableName = `spreadsheet_${Date.now()}`;
+
+      const createTableSQL = `
+        CREATE TABLE [${tableName}] (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          ${columns.map(c => `[${c}] NVARCHAR(MAX)`).join(',')},
+          created_by INT NOT NULL,
+          last_updated_by INT NOT NULL,
+          team_id INT NOT NULL,
+          created_at DATETIME2 DEFAULT SYSDATETIME()
+        );
+      `;
+
+      await queryRunner.query(createTableSQL);
+
+      //INSERT DATA 
+
+      const insertColumns = [
+        ...columns,
+        'created_by',
+        'last_updated_by',
+        'team_id',
+      ];
+
+      const valuesSQL = rows.map(row => {
+        const values = row.map(v =>
+          `'${v.replace(/'/g, "''")}'`,
+        );
+        
+        return `(${[
+          ...values,
+          `'${userId}'`,
+          `'${userId}'`,
+          `'${teamId}'`,
+        ].join(',')})`;
       });
+
+      const insertSQL = `
+        INSERT INTO "${tableName}" (${insertColumns.join(',')})
+        VALUES ${valuesSQL.join(',')};
+      `;
+
+      await queryRunner.query(insertSQL);
+
+      // SAVE METADATA 
+
+      const metadata = this.metadataRepository.create({
+        tableName,
+        originalFileName: file.originalname,
+        teamId,
+        createdBy: userId,
+      });
+
+      await queryRunner.manager.save(metadata);
+      await queryRunner.commitTransaction();
+
+      return {
+        id: metadata.id,
+        name: metadata.originalFileName,
+        rowsImported: rows.length,
+      };
+    } catch (error) {
+        await queryRunner.rollbackTransaction();
+        throw error;
+    } finally {
+        await queryRunner.release();
     }
-
-    return Array.from(grouped.values());
   }
 
-  async createColumn(params: {
-    spreadsheetId: number;
-    title: string;
-  }) {
-    const orderIndex =
-      await this.columnReadRepository.getNextOrderIndex(params.spreadsheetId);
-
-    return this.columnWriteRepository.create({
-      spreadsheetId: params.spreadsheetId,
-      title: params.title,
-      orderIndex,
-    });
+  private sanitizeColumn(name: string): string {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_');
   }
+}
 
-  async importCsv(file: Express.Multer.File) {
-    const content = file.buffer.toString('utf-8');
+  
 
-    const records: string[][] = parse(content, {
-      skip_empty_lines: true,
-    });
-
-    const [header, ...rows] = records;
-
-    return this.dataSource.transaction(async (manager) => {
-      // cria spreadsheet
-      const spreadsheet = await manager.insert('spreadsheet', {
-        name: file.originalname,
-        created_by: 1,
-        team_id: 1,
-        created_at: new Date(),
-      });
-
-      const spreadsheetId = spreadsheet.identifiers[0].id;
-
-      // cria colunas
-      const columns: number[] = [];
-      for (let i = 0; i < header.length; i++) {
-        const result = await manager.insert('column', {
-          spreadsheet_id: spreadsheetId,
-          title: header[i],
-          order_index: i + 1,
-        });
-
-        columns.push(result.identifiers[0].id);
-      }
-
-      // 3️cria linhas + células
-      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-        const rowResult = await manager.insert('row', {
-          spreadsheet_id: spreadsheetId,
-          status: 'IN_PROGRESS',
-          order_index: rowIndex + 1,
-        });
-
-        const rowId = rowResult.identifiers[0].id;
-
-        for (let colIndex = 0; colIndex < columns.length; colIndex++) {
-          const value = rows[rowIndex][colIndex];
-
-          if (value !== undefined && value !== '') {
-            await manager.insert('cell', {
-              row_id: rowId,
-              column_id: columns[colIndex],
-              value,
-              last_edited_by: 1,
-              created_at: new Date(),
-              updated_at: new Date(),
-            });
-          }
-        }
-      }
-
-      return { spreadsheetId };
-    });
-  }
-
-  async exportSpreadsheet(spreadsheetId: number): Promise<string> {
+  /*async exportSpreadsheet(spreadsheetId: number): Promise<string> {
     const rows = await this.spreadsheetReadRepository.getSpreadsheetForExport(
       spreadsheetId,
     ) as ExportRow[];
@@ -186,6 +159,6 @@ export class SpreadsheetService {
 
     return [header, ...lines].join('\n');
   }
+*/
 
-}
 
