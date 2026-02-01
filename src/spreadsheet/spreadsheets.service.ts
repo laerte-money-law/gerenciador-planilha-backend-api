@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { parse } from 'csv-parse/sync';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
+import { Role } from 'src/security/role/role.enum';
+import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
+import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -14,8 +17,8 @@ export class SpreadsheetService {
 
   async importCsv(
     file: Express.Multer.File,
-    userId: string,
-    teamId: string,
+    userId: number,
+    teamId: number,
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -108,6 +111,40 @@ export class SpreadsheetService {
     } finally {
         await queryRunner.release();
     }
+  }
+
+  async getSpreadsheets(role: string, teamId: number, page = 1, limit = 1): Promise<PaginatedResponseDto<SpreadsheetListItemDto>> {
+    const skip = (page - 1) * limit;
+
+    let items: SpreadsheetMetadata[];
+    let total: number;
+
+  if (role === 'ADMIN') {
+    [items, total] = await this.metadataRepository.findAndCount({
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+  } else {
+    [items, total] = await this.metadataRepository.findAndCount({
+      where: { teamId },
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+  }
+
+  return {
+    data: items.map(item => ({
+      id: item.id,
+      name: item.originalFileName,
+      createdAt: item.createdAt,
+    })),
+    page,
+    limit,
+    total,
+  };
+
   }
 
   private sanitizeColumn(name: string): string {
