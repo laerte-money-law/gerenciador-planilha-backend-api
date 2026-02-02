@@ -1,0 +1,126 @@
+name: Deploy to GCP Cloud Run
+
+on:
+    push:
+        branches:
+            - master
+
+jobs:
+    build-and-deploy-qa:
+        runs-on: ubuntu-latest
+
+        env:
+            PROJECT_ID: money-law-gep
+            REGION: us-central1
+            SERVICE_NAME: money-law-gep-backend-api-qa
+            IMAGE_NAME: us-central1-docker.pkg.dev/money-law/money-law-gep-backend-qa/money-law-gep-backend-api-qa
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Authenticate to Google Cloud
+              uses: google-github-actions/auth@v2
+              with:
+                  credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+            - name: Set up Google Cloud CLI
+              uses: google-github-actions/setup-gcloud@v2
+              with:
+                  project_id: ${{ env.PROJECT_ID }}
+
+            - name: Authenticate Docker to Artifact Registry
+              run: |
+                  gcloud auth print-access-token | \
+                  docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
+
+            - name: Build Docker image
+              run: |
+                  docker build \
+                    --platform=linux/amd64 \
+                    -t $IMAGE_NAME \
+                    --build-arg ENVIRONMENT=qa \
+                    .
+
+            - name: Push Docker image
+              run: docker push $IMAGE_NAME
+
+            - name: Deploy to Cloud Run
+              run: |
+                  gcloud run deploy $SERVICE_NAME \
+                    --image $IMAGE_NAME \
+                    --platform managed \
+                    --region $REGION \
+                    --allow-unauthenticated \
+                    --port 8080 \
+                    --set-env-vars ENVIRONMENT=qa
+
+    manual-approval-to-prod:
+        runs-on: ubuntu-latest
+        needs: build-and-deploy-qa
+        outputs:
+            approved: ${{ steps.approval.outputs.approved }}
+        permissions:
+            issues: write
+        steps:
+            - name: Await Manual Approval
+              id: approval
+              uses: trstringer/manual-approval@v1
+              with:
+                  secret: ${{ secrets.GITHUB_TOKEN }}
+                  approvers: maycon164,suzanarn
+                  minimum-approvals: 1
+                  issue-title: "Manual Approval Required for PROD Deployment"
+                  issue-body: "Please comment 'approve' or 'deny' to control the production deploy."
+                  exclude-denied: true # ⬅️ This is the key: fail the step if denied
+
+    build-and-deploy-prod:
+        runs-on: ubuntu-latest
+        needs: manual-approval-to-prod
+        if: needs.manual-approval-to-prod.result == 'success'
+
+        env:
+            PROJECT_ID: money-law
+            REGION: us-central1
+            SERVICE_NAME: money-law-insurance-backend-api-prod
+            IMAGE_NAME: us-central1-docker.pkg.dev/money-law/money-law-backend-repo/money-law-insurance-backend-api-prod
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Authenticate to Google Cloud
+              uses: google-github-actions/auth@v2
+              with:
+                  credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+            - name: Set up Google Cloud CLI
+              uses: google-github-actions/setup-gcloud@v2
+              with:
+                  project_id: ${{ env.PROJECT_ID }}
+
+            - name: Authenticate Docker to Artifact Registry
+              run: |
+                  gcloud auth print-access-token | \
+                  docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
+
+            - name: Build Docker image
+              run: |
+                  docker build \
+                    --platform=linux/amd64 \
+                    -t $IMAGE_NAME \
+                    --build-arg ENVIRONMENT=prod \
+                    .
+
+            - name: Push Docker image
+              run: docker push $IMAGE_NAME
+
+            - name: Deploy to Cloud Run
+              run: |
+                  gcloud run deploy $SERVICE_NAME \
+                    --image $IMAGE_NAME \
+                    --platform managed \
+                    --region $REGION \
+                    --allow-unauthenticated \
+                    --port 8080 \
+                    --set-env-vars ENVIRONMENT=prod,DB_USERNAME=${{ secrets.DB_USERNAME }},DB_PASSWORD=${{ secrets.DB_PASSWORD }},USERS_ROBOT_PASSWORD=${{ secrets.USERS_ROBOT_PASSWORD }},USERS_ADMINS_PASSWORD=${{ secrets.USERS_ADMINS_PASSWORD }}
