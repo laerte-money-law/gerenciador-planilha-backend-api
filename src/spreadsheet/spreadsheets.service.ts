@@ -6,6 +6,7 @@ import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
 import { Role } from 'src/security/role/role.enum';
 import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
+import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -19,6 +20,8 @@ export class SpreadsheetService {
     file: Express.Multer.File,
     userId: number,
     teamId: number,
+    service: string,
+    status: string
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -27,7 +30,6 @@ export class SpreadsheetService {
 
     try {
       // PARSE CSV 
-
       const content = file.buffer.toString('utf-8');
 
       const records: string[][] = parse(content, {
@@ -95,6 +97,8 @@ export class SpreadsheetService {
         originalFileName: file.originalname,
         teamId,
         createdBy: userId,
+        service,
+        status
       });
 
       await queryRunner.manager.save(metadata);
@@ -119,33 +123,97 @@ export class SpreadsheetService {
     let items: SpreadsheetMetadata[];
     let total: number;
 
-  if (role === 'ADMIN') {
-    [items, total] = await this.metadataRepository.findAndCount({
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
-  } else {
-    [items, total] = await this.metadataRepository.findAndCount({
-      where: { teamId },
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
+    if (role === 'ADMIN') {
+      [items, total] = await this.metadataRepository.findAndCount({
+        order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
+      });
+    } else {
+      [items, total] = await this.metadataRepository.findAndCount({
+        where: { teamId },
+        order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
+      });
+    }
+
+    return {
+      data: items.map(item => ({
+        id: item.id,
+        name: item.originalFileName,
+        createdAt: item.createdAt,
+      })),
+      page,
+      limit,
+      total,
+    };
+
   }
 
-  return {
-    data: items.map(item => ({
-      id: item.id,
-      name: item.originalFileName,
-      createdAt: item.createdAt,
-    })),
-    page,
-    limit,
-    total,
-  };
+  async getSpreadsheetByIdPaginated(
+    spreadsheetId: string,
+    role: string,
+    teamId: number,
+    page = 1,
+    limit = 20,
+  ):Promise<SpreadsheetViewResponseDto> {
+    const offset = (page - 1) * limit;
 
+    const metadata = await this.metadataRepository.findOne({
+      where:
+        role === 'ADMIN'
+          ? { id: spreadsheetId }
+          : { id: spreadsheetId, teamId },
+    });
+
+    if (!metadata) {
+      throw new Error('Planilha não encontrada');
+    }
+
+    const tableName = metadata.tableName;
+
+    // TOTAL DE LINHAS
+    const totalResult = await this.dataSource.query(
+      `SELECT COUNT(*) as total FROM [${tableName}]`,
+    );
+
+    const total = Number(totalResult[0].total);
+
+    const rows = await this.dataSource.query(
+      `
+      SELECT *
+      FROM [${tableName}]
+      ORDER BY id
+      OFFSET ${offset} ROWS
+      FETCH NEXT ${limit} ROWS ONLY;
+      `,
+    );
+
+    const columns =
+      rows.length > 0
+        ? Object.keys(rows[0]).filter(
+            col =>
+              ![
+                'created_by',
+                'last_updated_by',
+                'team_id',
+                'created_at',
+              ].includes(col),
+          )
+        : [];
+
+    return {
+      id: metadata.id,
+      name: metadata.originalFileName,
+      columns,
+      rows,
+      page,
+      limit,
+      total,
+    };
   }
+
 
   private sanitizeColumn(name: string): string {
     return name
@@ -154,48 +222,3 @@ export class SpreadsheetService {
       .replace(/[^a-z0-9_]/g, '_');
   }
 }
-
-  
-
-  /*async exportSpreadsheet(spreadsheetId: number): Promise<string> {
-    const rows = await this.spreadsheetReadRepository.getSpreadsheetForExport(
-      spreadsheetId,
-    ) as ExportRow[];
-
-    if (rows.length === 0) {
-      return '';
-    }
-
-    const columns: string[] = Array.from(
-      new Map(
-        rows.map((r) => [r.column_id, r.column_title]),
-      ).values(),
-    );
-
-    // Agrupar linhas
-    const grouped = new Map<number, Record<string, string>>();
-
-    for (const r of rows) {
-      if (!grouped.has(r.row_id)) {
-        grouped.set(r.row_id, {});
-      }
-
-      grouped.get(r.row_id)![r.column_title] = r.value ?? '';
-    }
-
-    // Montar CSV
-    const header = columns.join(',');
-    const lines: string[] = [];
-
-    for (const row of grouped.values()) {
-      const line = columns
-        .map((col) => row[col] ?? '')
-        .join(',');
-      lines.push(line);
-    }
-
-    return [header, ...lines].join('\n');
-  }
-*/
-
-

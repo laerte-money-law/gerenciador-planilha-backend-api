@@ -14,6 +14,12 @@ export class SpreadsheetMetadata {
   @Column({ name: 'team_id', type: 'int' })
   teamId: number;
 
+  @Column({ name: 'service', type: 'nvarchar', length: 100, nullable: true })
+  service: string;
+
+  @Column({ name: 'status', type: 'nvarchar', length: 50, nullable: true })
+  status: string;
+
   @Column({ name: 'created_by', type: 'int' })
   createdBy: number;
 
