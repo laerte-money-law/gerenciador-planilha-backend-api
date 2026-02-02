@@ -1,11 +1,11 @@
-import {  Controller, Get, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {  Body, Controller, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from 'src/security/role/role.guard';
 import { Roles } from 'src/security/role/role.decorator';
 import { Role } from 'src/security/role/role.enum';
-
+import { CreateSpreadsheetDto } from './model/dto/createSpreadsheet.dto';
 
 @Controller()
 export class SpreadsheetController {
@@ -20,11 +20,14 @@ export class SpreadsheetController {
     async importCsv(
       @UploadedFile() file: Express.Multer.File,
       @Req() req: any,
+      @Body() body: CreateSpreadsheetDto
 
     ) {
-    
-      const { userId, teamId } = req.user;      
-      return this.spreadsheetService.importCsv(file, userId, teamId);
+      const { userId, teamId, role } = req.user;      
+      const targetTeamId = role == 'ADMIN' ? body.teamId : teamId;
+
+      console.log(file, userId, targetTeamId, body.service, body.status)
+      return this.spreadsheetService.importCsv(file, userId, targetTeamId, body.service, body.status);
     }
 
     @Get('spreadsheets')
@@ -39,25 +42,23 @@ export class SpreadsheetController {
       return this.spreadsheetService.getSpreadsheets(role, teamId, Number(page), Number(limit));
     }
 
+    @Get('spreadsheets/:id')
+    @UseGuards(AuthGuard('jwt'))
+    async getSpreadsheet(
+      @Param('id') id: string,
+      @Req() req: any,
+      @Query('page') page?: string,
+      @Query('limit') limit?: string,
+    ) {
+      const { role, teamId } = req.user;
 
-  /*@Get(':id/export')
-  async export(
-    @Param('id') spreadsheetId: number,
-    @Res() res: Response,
-  ) {
-    const csv = await this.spreadsheetService.exportSpreadsheet(
-      Number(spreadsheetId),
-    );
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="spreadsheet-${spreadsheetId}.csv"`,
-    );
-
-    res.send(csv);
-  }
-*/
-
+      return this.spreadsheetService.getSpreadsheetByIdPaginated(
+        id,
+        role,
+        teamId,
+        Number(page),
+        Number(limit)
+      );
+    }
 
 }
