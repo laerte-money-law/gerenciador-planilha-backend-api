@@ -1,0 +1,61 @@
+name: Increment Version
+
+on:
+    push:
+        branches:
+            - master
+
+permissions:
+    contents: write # Grants write access to the repository content
+
+jobs:
+    update_version:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: "20"
+
+            - name: Install dependencies
+              run: npm install
+
+            - name: Update version in package.json
+              id: update_version
+              run: |
+                  # Read current version
+                  VERSION=$(jq -r '.version' package.json)
+
+                  # Check if the version has "-SNAPSHOT" and strip it temporarily
+                  BASE_VERSION=${VERSION%-SNAPSHOT}
+                  SUFFIX=${VERSION#${BASE_VERSION}}
+
+                  # Increment the last number in the version
+                  NEW_VERSION=$(echo $BASE_VERSION | awk -F. -v OFS=. '{$NF += 1 ; print}')
+
+                  # Reattach "-SNAPSHOT" if it was originally present
+                  FINAL_VERSION="${NEW_VERSION}${SUFFIX}"
+
+                  # Update package.json with the new version
+                  jq ".version = \"${FINAL_VERSION}\"" package.json > temp.json && mv temp.json package.json
+
+                  # Set FINAL_VERSION as an output variable
+                  echo "::set-output name=final_version::${FINAL_VERSION}"
+
+            - name: Format package.json with Prettier
+              run: npx prettier --write package.json
+
+            - name: Commit version bump
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  FINAL_VERSION: ${{ steps.update_version.outputs.final_version }}
+              run: |
+                  git config --global user.name "github-actions[bot]"
+                  git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                  git add package.json
+                  git commit -m "chore: Bump build version to ${FINAL_VERSION}"
+                  git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" HEAD:master
