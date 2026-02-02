@@ -25,8 +25,7 @@ export class SpreadsheetController {
     ) {
       const { userId, teamId, role } = req.user;      
       const targetTeamId = role == 'ADMIN' ? body.teamId : teamId;
-
-      console.log(file, userId, targetTeamId, body.service, body.status)
+      
       return this.spreadsheetService.importCsv(file, userId, targetTeamId, body.service, body.status);
     }
 
