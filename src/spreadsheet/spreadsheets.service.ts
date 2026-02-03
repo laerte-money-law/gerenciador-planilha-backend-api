@@ -6,6 +6,8 @@ import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
 import { Role } from 'src/security/role/role.enum';
 import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
+import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
+import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -19,6 +21,8 @@ export class SpreadsheetService {
     file: Express.Multer.File,
     userId: number,
     teamId: number,
+    service: string,
+    status: string
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -27,7 +31,6 @@ export class SpreadsheetService {
 
     try {
       // PARSE CSV 
-
       const content = file.buffer.toString('utf-8');
 
       const records: string[][] = parse(content, {
@@ -50,6 +53,7 @@ export class SpreadsheetService {
         CREATE TABLE [${tableName}] (
           id INT IDENTITY(1,1) PRIMARY KEY,
           ${columns.map(c => `[${c}] NVARCHAR(MAX)`).join(',')},
+          status VARCHAR(30),
           created_by INT NOT NULL,
           last_updated_by INT NOT NULL,
           team_id INT NOT NULL,
@@ -63,6 +67,7 @@ export class SpreadsheetService {
 
       const insertColumns = [
         ...columns,
+        'status',
         'created_by',
         'last_updated_by',
         'team_id',
@@ -75,6 +80,7 @@ export class SpreadsheetService {
         
         return `(${[
           ...values,
+          `'IN PROGRESS'`,
           `'${userId}'`,
           `'${userId}'`,
           `'${teamId}'`,
@@ -95,6 +101,8 @@ export class SpreadsheetService {
         originalFileName: file.originalname,
         teamId,
         createdBy: userId,
+        service,
+        status
       });
 
       await queryRunner.manager.save(metadata);
@@ -119,32 +127,112 @@ export class SpreadsheetService {
     let items: SpreadsheetMetadata[];
     let total: number;
 
-  if (role === 'ADMIN') {
-    [items, total] = await this.metadataRepository.findAndCount({
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
-  } else {
-    [items, total] = await this.metadataRepository.findAndCount({
-      where: { teamId },
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
+    if (role === 'ADMIN') {
+      [items, total] = await this.metadataRepository.findAndCount({
+        order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
+      });
+    } else {
+      [items, total] = await this.metadataRepository.findAndCount({
+        where: { teamId },
+        order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
+      });
+    }
+
+    return {
+      data: items.map(item => ({
+        id: item.id,
+        name: item.originalFileName,
+        createdAt: item.createdAt,
+      })),
+      page,
+      limit,
+      total,
+    };
+
   }
 
-  return {
-    data: items.map(item => ({
-      id: item.id,
-      name: item.originalFileName,
-      createdAt: item.createdAt,
-    })),
-    page,
-    limit,
-    total,
-  };
+  async getSpreadsheetByIdPaginated(
+    spreadsheetId: string,
+    role: string,
+    teamId: number,
+    filters: SpreadsheetFiltersDto,
+  ): Promise<SpreadsheetViewResponseDto> {
 
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 15;
+    const offset = (page - 1) * limit;
+
+    const metadata = await this.metadataRepository.findOne({
+      where:
+        role === 'ADMIN'
+          ? { id: spreadsheetId }
+          : { id: spreadsheetId, teamId },
+    });
+
+    if (!metadata) {
+      throw new Error('Planilha não encontrada');
+    }
+
+    const tableName = metadata.tableName;
+
+    const baseQb = this.dataSource
+      .createQueryBuilder()
+      .from(tableName, 't');
+
+    if (filters.status) {
+      baseQb.andWhere('t.status = :status', {
+        status: filters.status,
+      });
+    }
+
+    if (filters.search) {
+      baseQb.andWhere('t.processo LIKE :search', {
+        search: `%${filters.search}%`,
+      });
+    }
+
+    const countResult = await baseQb
+      .clone()
+      .select('COUNT(1)', 'total')
+      .getRawOne<{ total: number }>();
+
+    const total = Number(countResult?.total ?? 0);
+
+    const rows = await baseQb
+      .clone()
+      .select('*')
+      .orderBy('t.id', 'ASC')
+      .offset(offset)
+      .limit(limit)
+      .getRawMany();
+
+    
+    const columns =
+      rows.length > 0
+        ? Object.keys(rows[0]).filter(
+            col =>
+              ![
+                'created_by',
+                'last_updated_by',
+                'team_id',
+                'created_at',
+              ].includes(col),
+          )
+        : [];
+
+    return {
+      id: metadata.id,
+      name: metadata.originalFileName,
+      columns,
+      rows,
+      page,
+      limit,
+      total,
+    };
   }
 
   private sanitizeColumn(name: string): string {
@@ -154,48 +242,3 @@ export class SpreadsheetService {
       .replace(/[^a-z0-9_]/g, '_');
   }
 }
-
-  
-
-  /*async exportSpreadsheet(spreadsheetId: number): Promise<string> {
-    const rows = await this.spreadsheetReadRepository.getSpreadsheetForExport(
-      spreadsheetId,
-    ) as ExportRow[];
-
-    if (rows.length === 0) {
-      return '';
-    }
-
-    const columns: string[] = Array.from(
-      new Map(
-        rows.map((r) => [r.column_id, r.column_title]),
-      ).values(),
-    );
-
-    // Agrupar linhas
-    const grouped = new Map<number, Record<string, string>>();
-
-    for (const r of rows) {
-      if (!grouped.has(r.row_id)) {
-        grouped.set(r.row_id, {});
-      }
-
-      grouped.get(r.row_id)![r.column_title] = r.value ?? '';
-    }
-
-    // Montar CSV
-    const header = columns.join(',');
-    const lines: string[] = [];
-
-    for (const row of grouped.values()) {
-      const line = columns
-        .map((col) => row[col] ?? '')
-        .join(',');
-      lines.push(line);
-    }
-
-    return [header, ...lines].join('\n');
-  }
-*/
-
-
