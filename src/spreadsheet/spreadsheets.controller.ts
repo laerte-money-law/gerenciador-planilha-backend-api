@@ -6,6 +6,7 @@ import { RolesGuard } from 'src/security/role/role.guard';
 import { Roles } from 'src/security/role/role.decorator';
 import { Role } from 'src/security/role/role.enum';
 import { CreateSpreadsheetDto } from './model/dto/createSpreadsheet.dto';
+import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 
 @Controller()
 export class SpreadsheetController {
@@ -25,7 +26,7 @@ export class SpreadsheetController {
     ) {
       const { userId, teamId, role } = req.user;      
       const targetTeamId = role == 'ADMIN' ? body.teamId : teamId;
-      
+
       return this.spreadsheetService.importCsv(file, userId, targetTeamId, body.service, body.status);
     }
 
@@ -46,17 +47,15 @@ export class SpreadsheetController {
     async getSpreadsheet(
       @Param('id') id: string,
       @Req() req: any,
-      @Query('page') page?: string,
-      @Query('limit') limit?: string,
+      @Query() filters: SpreadsheetFiltersDto
+
     ) {
       const { role, teamId } = req.user;
-
       return this.spreadsheetService.getSpreadsheetByIdPaginated(
         id,
         role,
         teamId,
-        Number(page),
-        Number(limit)
+        filters
       );
     }
 

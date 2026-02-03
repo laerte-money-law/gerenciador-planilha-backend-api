@@ -7,6 +7,7 @@ import { Role } from 'src/security/role/role.enum';
 import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
+import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -52,6 +53,7 @@ export class SpreadsheetService {
         CREATE TABLE [${tableName}] (
           id INT IDENTITY(1,1) PRIMARY KEY,
           ${columns.map(c => `[${c}] NVARCHAR(MAX)`).join(',')},
+          status VARCHAR(30),
           created_by INT NOT NULL,
           last_updated_by INT NOT NULL,
           team_id INT NOT NULL,
@@ -65,6 +67,7 @@ export class SpreadsheetService {
 
       const insertColumns = [
         ...columns,
+        'status',
         'created_by',
         'last_updated_by',
         'team_id',
@@ -77,6 +80,7 @@ export class SpreadsheetService {
         
         return `(${[
           ...values,
+          `'IN PROGRESS'`,
           `'${userId}'`,
           `'${userId}'`,
           `'${teamId}'`,
@@ -155,9 +159,11 @@ export class SpreadsheetService {
     spreadsheetId: string,
     role: string,
     teamId: number,
-    page = 1,
-    limit = 20,
-  ):Promise<SpreadsheetViewResponseDto> {
+    filters: SpreadsheetFiltersDto,
+  ): Promise<SpreadsheetViewResponseDto> {
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 15;
     const offset = (page - 1) * limit;
 
     const metadata = await this.metadataRepository.findOne({
@@ -173,23 +179,38 @@ export class SpreadsheetService {
 
     const tableName = metadata.tableName;
 
-    // TOTAL DE LINHAS
-    const totalResult = await this.dataSource.query(
-      `SELECT COUNT(*) as total FROM [${tableName}]`,
-    );
+    const baseQb = this.dataSource
+      .createQueryBuilder()
+      .from(tableName, 't');
 
-    const total = Number(totalResult[0].total);
+    if (filters.status) {
+      baseQb.andWhere('t.status = :status', {
+        status: filters.status,
+      });
+    }
 
-    const rows = await this.dataSource.query(
-      `
-      SELECT *
-      FROM [${tableName}]
-      ORDER BY id
-      OFFSET ${offset} ROWS
-      FETCH NEXT ${limit} ROWS ONLY;
-      `,
-    );
+    if (filters.search) {
+      baseQb.andWhere('t.processo LIKE :search', {
+        search: `%${filters.search}%`,
+      });
+    }
 
+    const countResult = await baseQb
+      .clone()
+      .select('COUNT(1)', 'total')
+      .getRawOne<{ total: number }>();
+
+    const total = Number(countResult?.total ?? 0);
+
+    const rows = await baseQb
+      .clone()
+      .select('*')
+      .orderBy('t.id', 'ASC')
+      .offset(offset)
+      .limit(limit)
+      .getRawMany();
+
+    
     const columns =
       rows.length > 0
         ? Object.keys(rows[0]).filter(
@@ -213,7 +234,6 @@ export class SpreadsheetService {
       total,
     };
   }
-
 
   private sanitizeColumn(name: string): string {
     return name
