@@ -13,7 +13,7 @@ jobs:
             PROJECT_ID: money-law-gep
             REGION: us-central1
             SERVICE_NAME: money-law-gep-backend-api-qa
-            IMAGE_NAME: us-central1-docker.pkg.dev/money-law-gep/money-law-gep-backend-qa/money-law-gep-backend-api-qa
+            IMAGE_NAME: us-central1-docker.pkg.dev/money-law-gep/money-law-gep-backend-api-qa/money-law-gep-backend-api-qa
 
         steps:
             - name: Checkout code
