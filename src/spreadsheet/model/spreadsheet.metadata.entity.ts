@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Team } from "../../team/model/team.entity";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinColumn, ManyToOne } from "typeorm";
 
 @Entity('spreadsheet_metadata')
 export class SpreadsheetMetadata {
@@ -11,8 +12,9 @@ export class SpreadsheetMetadata {
   @Column({ name: 'original_filename', type: 'nvarchar', length: 255 })
   originalFileName: string;
 
-  @Column({ name: 'team_id', type: 'int' })
-  teamId: number;
+  @ManyToOne(() => Team, (team) => team.spreadsheets, { eager: false })
+  @JoinColumn({ name: 'team_id' })
+  team: Team;
 
   @Column({ name: 'service', type: 'nvarchar', length: 100, nullable: true })
   service: string;

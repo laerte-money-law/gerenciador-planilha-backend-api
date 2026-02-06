@@ -8,6 +8,7 @@ import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
+import { Team } from 'src/team/model/team.entity';
 
 @Injectable()
 export class SpreadsheetService {
@@ -95,11 +96,10 @@ export class SpreadsheetService {
       await queryRunner.query(insertSQL);
 
       // SAVE METADATA 
-
       const metadata = this.metadataRepository.create({
         tableName,
         originalFileName: file.originalname,
-        teamId,
+        team: { id: teamId },
         createdBy: userId,
         service,
         status
@@ -121,38 +121,40 @@ export class SpreadsheetService {
     }
   }
 
-  async getSpreadsheets(role: string, teamId: number, page = 1, limit = 1): Promise<PaginatedResponseDto<SpreadsheetListItemDto>> {
+  async getSpreadsheets(
+    role: Role,
+    teamId: number,
+    page = 1,
+    limit = 15,
+  ): Promise<PaginatedResponseDto<SpreadsheetListItemDto>> {
     const skip = (page - 1) * limit;
 
-    let items: SpreadsheetMetadata[];
-    let total: number;
-
-    if (role === 'ADMIN') {
-      [items, total] = await this.metadataRepository.findAndCount({
-        order: { createdAt: 'DESC' },
-        skip,
-        take: limit,
-      });
-    } else {
-      [items, total] = await this.metadataRepository.findAndCount({
-        where: { teamId },
-        order: { createdAt: 'DESC' },
-        skip,
-        take: limit,
-      });
-    }
+    const [items, total] = await this.metadataRepository.findAndCount({
+      where:
+        role === Role.ADMIN
+          ? {}
+          : { team: { id: teamId } },
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+      relations: {
+        team: true,
+      },
+    });
 
     return {
       data: items.map(item => ({
         id: item.id,
         name: item.originalFileName,
+        team: item.team,
+        service: item.service,
+        status: item.status,
         createdAt: item.createdAt,
       })),
       page,
       limit,
       total,
     };
-
   }
 
   async getSpreadsheetByIdPaginated(
@@ -170,7 +172,7 @@ export class SpreadsheetService {
       where:
         role === 'ADMIN'
           ? { id: spreadsheetId }
-          : { id: spreadsheetId, teamId },
+          : { id: spreadsheetId, team: {id: teamId} },
     });
 
     if (!metadata) {
