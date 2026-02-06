@@ -10,53 +10,59 @@ import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto
 
 @Controller()
 export class SpreadsheetController {
-  constructor(
-    private readonly spreadsheetService: SpreadsheetService,
-  ) {}
+  constructor(private readonly spreadsheetService: SpreadsheetService) {}
 
-    @Post('import')
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles(Role.ADMIN, Role.USER)    
-    @UseInterceptors(FileInterceptor('file'))
-    async importCsv(
-      @UploadedFile() file: Express.Multer.File,
-      @Req() req: any,
-      @Body() body: CreateSpreadsheetDto
+  @Post('import')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  @UseInterceptors(
+    FileInterceptor('file'),
+  )
+  async importCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: CreateSpreadsheetDto,
+  ) {
 
-    ) {
-      const { userId, teamId, role } = req.user;      
-      const targetTeamId = role == 'ADMIN' ? body.teamId : teamId;
+    return this.spreadsheetService.importCsv(
+      file,
+      1,
+      1,
+      body.service,
+      body.status,
+    );
+  }
 
-      return this.spreadsheetService.importCsv(file, userId, targetTeamId, body.service, body.status);
-    }
+  @Get('spreadsheets')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async getSpreadsheets(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const { teamId, role } = req.user;
+    return this.spreadsheetService.getSpreadsheets(
+      role,
+      teamId,
+      Number(page),
+      Number(limit),
+    );
+  }
 
-    @Get('spreadsheets')
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles(Role.ADMIN, Role.USER)
-    async getSpreadsheets(
-      @Req() req: any,
-      @Query('page') page?: string,
-      @Query('limit') limit?: string,
-    ){
-      const { teamId, role } = req.user;      
-      return this.spreadsheetService.getSpreadsheets(role, teamId, Number(page), Number(limit));
-    }
-
-    @Get('spreadsheets/:id')
-    @UseGuards(AuthGuard('jwt'))
-    async getSpreadsheet(
-      @Param('id') id: string,
-      @Req() req: any,
-      @Query() filters: SpreadsheetFiltersDto
-
-    ) {
-      const { role, teamId } = req.user;
-      return this.spreadsheetService.getSpreadsheetByIdPaginated(
-        id,
-        role,
-        teamId,
-        filters
-      );
-    }
-
+  @Get('spreadsheets/:id')
+  @UseGuards(AuthGuard('jwt'))
+  async getSpreadsheet(
+    @Param('id') id: string,
+    @Req() req: any,
+    @Query() filters: SpreadsheetFiltersDto,
+  ) {
+    console.log("Rodou AQUI")
+    const { role, teamId } = req.user;
+    return this.spreadsheetService.getSpreadsheetByIdPaginated(
+      id,
+      role,
+      teamId,
+      filters,
+    );
+  }
 }
