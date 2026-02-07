@@ -36,6 +36,7 @@ export class SpreadsheetService {
 
       const records: string[][] = parse(content, {
         skip_empty_lines: true,
+        delimiter: ";"
       });
 
       const [rawHeader, ...rows] = records;
@@ -64,7 +65,7 @@ export class SpreadsheetService {
 
       await queryRunner.query(createTableSQL);
 
-      //INSERT DATA 
+      //INSERT DATA IN BATCHES OF 1000
 
       const insertColumns = [
         ...columns,
@@ -74,26 +75,35 @@ export class SpreadsheetService {
         'team_id',
       ];
 
-      const valuesSQL = rows.map(row => {
-        const values = row.map(v =>
-          `'${v.replace(/'/g, "''")}'`,
-        );
-        
-        return `(${[
-          ...values,
-          `'IN PROGRESS'`,
-          `'${userId}'`,
-          `'${userId}'`,
-          `'${teamId}'`,
-        ].join(',')})`;
-      });
+      const batchSize = 1000;
+      const totalBatches = Math.ceil(rows.length / batchSize);
 
-      const insertSQL = `
-        INSERT INTO "${tableName}" (${insertColumns.join(',')})
-        VALUES ${valuesSQL.join(',')};
-      `;
+      for (let i = 0; i < totalBatches; i++) {
+        const startIndex = i * batchSize;
+        const endIndex = Math.min((i + 1) * batchSize, rows.length);
+        const batchRows = rows.slice(startIndex, endIndex);
 
-      await queryRunner.query(insertSQL);
+        const valuesSQL = batchRows.map(row => {
+          const values = row.map(v =>
+            `'${v.replace(/'/g, "''")}'`,
+          );
+
+          return `(${[
+            ...values,
+            `'IN PROGRESS'`,
+            `'${userId}'`,
+            `'${userId}'`,
+            `'${teamId}'`,
+          ].join(',')})`;
+        });
+
+        const insertSQL = `
+          INSERT INTO "${tableName}" (${insertColumns.join(',')})
+          VALUES ${valuesSQL.join(',')};
+        `;
+
+        await queryRunner.query(insertSQL);
+      }
 
       // SAVE METADATA 
       const metadata = this.metadataRepository.create({
