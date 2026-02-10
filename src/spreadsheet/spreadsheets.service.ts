@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { parse } from 'csv-parse/sync';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
@@ -8,7 +8,8 @@ import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
-import { Team } from 'src/team/model/team.entity';
+import * as XLSX from 'xlsx';
+import { extname } from 'path';
 
 @Injectable()
 export class SpreadsheetService {
@@ -31,21 +32,84 @@ export class SpreadsheetService {
     await queryRunner.startTransaction();
 
     try {
-      // PARSE CSV 
-      const content = file.buffer.toString('utf-8');
+      // PARSE CSV or XLSX (strategy based on extension)
+      const extension = (extname(file.originalname || '') || '').toLowerCase();
 
-      const records: string[][] = parse(content, {
-        skip_empty_lines: true,
-        delimiter: ";"
-      });
+      let records: string[][] = [];
 
-      const [rawHeader, ...rows] = records;
+      if (extension === '.xlsx') {
+        // Parse XLSX buffer using xlsx
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          throw new Error('XLSX sem sheets');
+        }
+        const sheet = workbook.Sheets[sheetName];
+        const arr: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+        records = arr.map((r) =>
+          Array.isArray(r)
+            ? r.map((c) => (c === null || c === undefined ? '' : String(c)))
+            : [],
+        );
+      } else {
+        // Fallback to CSV parse (keep existing behavior)
+        const content = file.buffer.toString('utf-8');
+
+        // Try parsing with both delimiters and pick the one that yields most rows matching header length
+        const tryParse = (delim: string) => {
+          try {
+            const parsed: string[][] = parse(content, { skip_empty_lines: true, delimiter: delim });
+            return parsed;
+          } catch (e) {
+            console.warn(`[importCsv] parse with delimiter ${delim} failed:`, e);
+            return [] as string[][];
+          }
+        };
+
+        const parsedSemi = tryParse(';');
+        const parsedComma = tryParse(',');
+
+        const score = (parsed: string[][]) => {
+          if (!parsed || parsed.length === 0) return 0;
+          const headerLen = parsed[0].length;
+          const rows = parsed.slice(1);
+          const matches = rows.filter(r => Array.isArray(r) && r.length === headerLen).length;
+          return matches;
+        };
+
+        const scoreSemi = score(parsedSemi);
+        const scoreComma = score(parsedComma);
+
+        const chosenParsed = scoreSemi >= scoreComma ? parsedSemi : parsedComma;
+        const chosenDelimiter = scoreSemi >= scoreComma ? ';' : ',';
+
+        console.log(`[importCsv] delimiter scores -> semicolon: ${scoreSemi}, comma: ${scoreComma}. Chosen: '${chosenDelimiter}'`);
+
+        records = chosenParsed;
+      }
+
+      console.log('[importCsv] records count:', records.length);
+
+      const [rawHeader, ...rowsRaw] = records;
 
       if (!rawHeader || rawHeader.length === 0) {
         throw new Error('CSV sem header');
       }
 
+      // Normalize rows: ensure arrays, trim cell strings and remove completely empty rows
+      const rows = rowsRaw
+        .map(r => Array.isArray(r) ? r.map(c => (c === null || c === undefined ? '' : String(c).trim())) : [])
+        .filter(r => r.some(cell => cell !== ''));
+
       const columns = rawHeader.map(this.sanitizeColumn);
+      const expectedColumnCount = columns.length;
+
+      console.log('[importCsv] header columns:', columns);
+      console.log('[importCsv] expectedColumnCount:', expectedColumnCount);
+      console.log('[importCsv] rows count after normalization (non-empty):', rows.length);
+      if (rows.length > 0) {
+        console.log('[importCsv] sample row lengths:', rows.slice(0, 5).map((r, idx) => ({idx, len: r.length, sample: r.slice(0,3)})));
+      }
 
       // CREATE TABLE
 
@@ -55,14 +119,15 @@ export class SpreadsheetService {
         CREATE TABLE [${tableName}] (
           id INT IDENTITY(1,1) PRIMARY KEY,
           ${columns.map(c => `[${c}] NVARCHAR(MAX)`).join(',')},
-          status VARCHAR(30),
-          created_by INT NOT NULL,
-          last_updated_by INT NOT NULL,
-          team_id INT NOT NULL,
-          created_at DATETIME2 DEFAULT SYSDATETIME()
+          [status] VARCHAR(30),
+          [created_by] INT NOT NULL,
+          [last_updated_by] INT NOT NULL,
+          [team_id] INT NOT NULL,
+          [created_at] DATETIME2 DEFAULT SYSDATETIME()
         );
       `;
 
+      console.log('[importCsv] creating table with SQL length:', createTableSQL.length);
       await queryRunner.query(createTableSQL);
 
       //INSERT DATA IN BATCHES OF 1000
@@ -75,34 +140,111 @@ export class SpreadsheetService {
         'team_id',
       ];
 
+      const bracketedColumns = insertColumns.map(c => `[${c}]`).join(',');
       const batchSize = 1000;
       const totalBatches = Math.ceil(rows.length / batchSize);
+      const rowStatus = (status ?? 'IN PROGRESS').replace(/'/g, "''");
+
+      console.log('[importCsv] totalBatches:', totalBatches);
+
+      let cumulativeInserted = 0;
 
       for (let i = 0; i < totalBatches; i++) {
         const startIndex = i * batchSize;
         const endIndex = Math.min((i + 1) * batchSize, rows.length);
         const batchRows = rows.slice(startIndex, endIndex);
 
-        const valuesSQL = batchRows.map(row => {
-          const values = row.map(v =>
-            `'${v.replace(/'/g, "''")}'`,
-          );
-
-          return `(${[
-            ...values,
-            `'IN PROGRESS'`,
-            `'${userId}'`,
-            `'${userId}'`,
-            `'${teamId}'`,
-          ].join(',')})`;
+        const batchObjects = batchRows.map(row => {
+          const obj: Record<string, any> = {};
+          for (let c = 0; c < expectedColumnCount; c++) {
+            obj[columns[c]] = row[c] ?? '';
+          }
+          obj['status'] = status ?? 'IN PROGRESS';
+          obj['created_by'] = userId;
+          obj['last_updated_by'] = userId;
+          obj['team_id'] = teamId;
+          return obj;
         });
 
-        const insertSQL = `
-          INSERT INTO "${tableName}" (${insertColumns.join(',')})
-          VALUES ${valuesSQL.join(',')};
-        `;
+        console.log(`[importCsv] executing batch ${i} parameterized insert, rows: ${batchRows.length}`);
 
-        await queryRunner.query(insertSQL);
+        try {
+          // Use parameterized batch insert via TypeORM QueryBuilder
+          await queryRunner.manager.createQueryBuilder()
+            .insert()
+            .into(tableName)
+            .values(batchObjects)
+            .execute();
+        } catch (batchError) {
+          console.error(`[importCsv] batch insert failed for batch ${i}:`, batchError);
+          // try per-row insert to identify problematic row
+          for (let rIndex = 0; rIndex < batchRows.length; rIndex++) {
+            const row = batchRows[rIndex];
+            const obj: Record<string, any> = {};
+            for (let c = 0; c < expectedColumnCount; c++) {
+              obj[columns[c]] = row[c] ?? '';
+            }
+            obj['status'] = status ?? 'IN PROGRESS';
+            obj['created_by'] = userId;
+            obj['last_updated_by'] = userId;
+            obj['team_id'] = teamId;
+
+            try {
+              // insert single row via query builder (parameterized)
+              await queryRunner.manager.createQueryBuilder()
+                .insert()
+                .into(tableName)
+                .values([obj])
+                .execute();
+              cumulativeInserted += 1;
+            } catch (singleError) {
+              console.error(`[importCsv] failed inserting single row at batch ${i} idx ${rIndex}:`, singleError, 'rowSample:', row.slice(0,5));
+              // continue attempting remaining rows
+            }
+          }
+          // Continue to next batch after per-row attempts
+          continue;
+        }
+
+        // Check how many rows are in the table after this batch (diagnostic)
+        try {
+          const countRes: any = await queryRunner.query(`SELECT COUNT(1) as cnt FROM [${tableName}]`);
+          const cnt = Array.isArray(countRes)
+            ? (countRes[0] && (countRes[0].cnt ?? countRes[0][''] ?? Object.values(countRes[0])[0]))
+            : (countRes && countRes.cnt) || countRes;
+          console.log(`[importCsv] after batch ${i} table row count:`, cnt);
+
+          // If count did not increase as expected, fallback to per-row inserts for diagnostics
+          if (Number(cnt) < cumulativeInserted + batchRows.length) {
+            console.warn(`[importCsv] batch ${i} insert count mismatch (expected +${batchRows.length}). Falling back to per-row inserts for this batch.`);
+            for (let rIndex = 0; rIndex < batchRows.length; rIndex++) {
+              const row = batchRows[rIndex];
+              const obj: Record<string, any> = {};
+              for (let c = 0; c < expectedColumnCount; c++) {
+                obj[columns[c]] = row[c] ?? '';
+              }
+              obj['status'] = status ?? 'IN PROGRESS';
+              obj['created_by'] = userId;
+              obj['last_updated_by'] = userId;
+              obj['team_id'] = teamId;
+
+              try {
+                await queryRunner.manager.createQueryBuilder()
+                  .insert()
+                  .into(tableName)
+                  .values([obj])
+                  .execute();
+                cumulativeInserted += 1;
+              } catch (singleError) {
+                console.error(`[importCsv] failed inserting single row at batch ${i} idx ${rIndex}:`, singleError, 'rowSample:', row.slice(0,5));
+              }
+            }
+          } else {
+            cumulativeInserted += batchRows.length;
+          }
+        } catch (countErr) {
+          console.warn(`[importCsv] could not fetch count after batch ${i}:`, countErr);
+        }
       }
 
       // SAVE METADATA 
@@ -124,10 +266,12 @@ export class SpreadsheetService {
         rowsImported: rows.length,
       };
     } catch (error) {
-        await queryRunner.rollbackTransaction();
-        throw error;
+      console.error('DEU UM PUTA ERRO AQUI', error);
+
+      await queryRunner.rollbackTransaction();
+      throw error;
     } finally {
-        await queryRunner.release();
+      await queryRunner.release();
     }
   }
 
