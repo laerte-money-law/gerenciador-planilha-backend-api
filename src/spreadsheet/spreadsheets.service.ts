@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
-import { parse } from 'csv-parse/sync';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
 import { Role } from 'src/security/role/role.enum';
@@ -8,7 +7,8 @@ import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
-import { Team } from 'src/team/model/team.entity';
+import * as XLSX from 'xlsx';
+import { RowStatus } from './RowStatus';
 
 @Injectable()
 export class SpreadsheetService {
@@ -27,25 +27,54 @@ export class SpreadsheetService {
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
 
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
-      // PARSE CSV 
-      const content = file.buffer.toString('utf-8');
+      // ...existing code...
+      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      if (!sheetName) {
+        throw new Error('XLSX sem sheets');
+      }
+      const sheet = workbook.Sheets[sheetName];
+      const arr: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+      const records = arr.map((r) =>
+        Array.isArray(r)
+          ? r.map((c) => (c === null || c === undefined ? '' : String(c)))
+          : [],
+      );
 
-      const records: string[][] = parse(content, {
-        skip_empty_lines: true,
-        delimiter: ";"
-      });
+      console.log('[importCsv] records count:', records.length);
 
-      const [rawHeader, ...rows] = records;
+      const [rawHeader, ...rowsRaw] = records;
 
       if (!rawHeader || rawHeader.length === 0) {
-        throw new Error('CSV sem header');
+        throw new Error('XLSX sem header');
       }
 
+      // Normalize rows: ensure arrays, trim cell strings and remove completely empty rows
+      const rows = rowsRaw
+        .map(r => Array.isArray(r) ? r.map(c => (c === null || c === undefined ? '' : String(c).trim())) : [])
+        .filter(r => r.some(cell => cell !== ''));
+
       const columns = rawHeader.map(this.sanitizeColumn);
+      const expectedColumnCount = columns.length;
+
+      // IMPORTANTE: Garantir que cada linha tem exatamente expectedColumnCount colunas
+      // Remover colunas extras ou preencher com '' se faltar
+      const normalizedRows = rows.map(row => {
+        const normalized: string[] = [];
+        for (let i = 0; i < expectedColumnCount; i++) {
+          normalized[i] = row[i] ?? '';
+        }
+        return normalized;
+      });
+
+      console.log('[importCsv] header columns:', columns);
+      console.log('[importCsv] expectedColumnCount:', expectedColumnCount);
+      console.log('[importCsv] rows count after normalization (non-empty):', normalizedRows.length);
+      if (normalizedRows.length > 0) {
+        console.log('[importCsv] sample row lengths:', normalizedRows.slice(0, 5).map((r, idx) => ({idx, len: r.length, sample: r.slice(0,3)})));
+        console.log('[importCsv] verifying all rows have expectedColumnCount columns:', normalizedRows.every(r => r.length === expectedColumnCount));
+      }
 
       // CREATE TABLE
 
@@ -55,17 +84,18 @@ export class SpreadsheetService {
         CREATE TABLE [${tableName}] (
           id INT IDENTITY(1,1) PRIMARY KEY,
           ${columns.map(c => `[${c}] NVARCHAR(MAX)`).join(',')},
-          status VARCHAR(30),
-          created_by INT NOT NULL,
-          last_updated_by INT NOT NULL,
-          team_id INT NOT NULL,
-          created_at DATETIME2 DEFAULT SYSDATETIME()
+          [status] VARCHAR(30),
+          [created_by] INT NOT NULL,
+          [last_updated_by] INT NOT NULL,
+          [team_id] INT NOT NULL,
+          [created_at] DATETIME2 DEFAULT SYSDATETIME()
         );
       `;
 
+      console.log('[importCsv] creating table with SQL length:', createTableSQL.length);
       await queryRunner.query(createTableSQL);
 
-      //INSERT DATA IN BATCHES OF 1000
+      //INSERT DATA - 1 linha por vez para garantir alinhamento de colunas e valores
 
       const insertColumns = [
         ...columns,
@@ -75,35 +105,71 @@ export class SpreadsheetService {
         'team_id',
       ];
 
-      const batchSize = 1000;
-      const totalBatches = Math.ceil(rows.length / batchSize);
+      const bracketedColumns = insertColumns.map(c => `[${c}]`).join(',');
 
-      for (let i = 0; i < totalBatches; i++) {
-        const startIndex = i * batchSize;
-        const endIndex = Math.min((i + 1) * batchSize, rows.length);
-        const batchRows = rows.slice(startIndex, endIndex);
+      console.log('[importCsv] insertColumns count:', insertColumns.length);
+      console.log('[importCsv] bracketedColumns:', bracketedColumns);
 
-        const valuesSQL = batchRows.map(row => {
-          const values = row.map(v =>
-            `'${v.replace(/'/g, "''")}'`,
+      let totalInserted = 0;
+
+      for (let rowIndex = 0; rowIndex < normalizedRows.length; rowIndex++) {
+        const row = normalizedRows[rowIndex];
+
+        // Construir valores da linha
+        const values: string[] = [];
+
+        // Adicionar valores das colunas do arquivo
+        for (let c = 0; c < expectedColumnCount; c++) {
+          const cellValue = row[c] ?? '';
+          // Escapar aspas simples: ' -> ''
+          const escaped = String(cellValue).replace(/'/g, "''");
+          values.push(`'${escaped}'`);
+        }
+
+        // Adicionar valores das colunas extras
+        //values.push(`'${(status ?? 'IN PROGRESS').replace(/'/g, "''")}'`); // status
+        values.push(`'${RowStatus.IN_PROGRESS}'`); // created_by
+        values.push(`${userId}`); // created_by
+        values.push(`${userId}`); // last_updated_by
+        values.push(`${teamId}`); // team_id
+
+        // Verificar que temos o mesmo número de colunas e valores
+        if (values.length !== insertColumns.length) {
+          console.error(
+            `[importCsv] row ${rowIndex} mismatch: ${insertColumns.length} columns but ${values.length} values`,
           );
+          throw new Error(
+            `Row ${rowIndex}: column count (${insertColumns.length}) does not match value count (${values.length})`,
+          );
+        }
 
-          return `(${[
-            ...values,
-            `'IN PROGRESS'`,
-            `'${userId}'`,
-            `'${userId}'`,
-            `'${teamId}'`,
-          ].join(',')})`;
-        });
+        // Construir e executar INSERT
+        const insertSQL = `INSERT INTO [${tableName}] (${bracketedColumns}) VALUES (${values.join(',')});`;
 
-        const insertSQL = `
-          INSERT INTO "${tableName}" (${insertColumns.join(',')})
-          VALUES ${valuesSQL.join(',')};
-        `;
+        try {
+          await queryRunner.query(insertSQL);
+          totalInserted += 1;
 
-        await queryRunner.query(insertSQL);
+          // Log a cada 100 linhas
+          if ((rowIndex + 1) % 100 === 0) {
+            console.log(
+              `[importCsv] inserted ${rowIndex + 1}/${normalizedRows.length} rows`,
+            );
+          }
+        } catch (error) {
+          console.error(`[importCsv] error inserting row ${rowIndex}:`, error);
+          console.error(`[importCsv] row data sample:`, row.slice(0, 5));
+          console.error(
+            `[importCsv] values count:`,
+            values.length,
+            'columns count:',
+            insertColumns.length,
+          );
+          throw error;
+        }
       }
+
+      console.log(`[importCsv] completed: inserted ${totalInserted} rows`);
 
       // SAVE METADATA 
       const metadata = this.metadataRepository.create({
@@ -116,18 +182,15 @@ export class SpreadsheetService {
       });
 
       await queryRunner.manager.save(metadata);
-      await queryRunner.commitTransaction();
 
       return {
         id: metadata.id,
         name: metadata.originalFileName,
-        rowsImported: rows.length,
+        rowsImported: totalInserted,
       };
     } catch (error) {
-        await queryRunner.rollbackTransaction();
-        throw error;
-    } finally {
-        await queryRunner.release();
+      console.error('[importCsv] erro durante importação:', error);
+      throw error;
     }
   }
 
