@@ -194,6 +194,49 @@ export class SpreadsheetService {
     }
   }
 
+  private async createTableSQL(
+    columns: string[],
+    teamId: string,
+    userId: string,
+    service: string,
+    status: string,
+    originalFileName: string,
+  ) {
+    const tableName = `spreadsheet_${Date.now()}`;
+
+    const createTableSQL = `
+        CREATE TABLE [${tableName}] (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          ${columns.map((c) => `[${c}] NVARCHAR(MAX)`).join(',')},
+          [status] VARCHAR(30),
+          [created_by] INT NOT NULL,
+          [last_updated_by] INT NOT NULL,
+          [team_id] INT NOT NULL,
+          [created_at] DATETIME2 DEFAULT SYSDATETIME()
+        );
+      `;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    console.log(
+      '[importCsv] creating table with SQL length:',
+      createTableSQL.length,
+    );
+    await queryRunner.query(createTableSQL);
+
+    // SAVE METADATA
+    const metadata = this.metadataRepository.create({
+      tableName,
+      originalFileName: originalFileName,
+      team: { id: teamId },
+      createdBy: userId,
+      service,
+      status
+    });
+
+    await queryRunner.manager.save(metadata);
+  }
+
   async getSpreadsheets(
     role: Role,
     teamId: number,
