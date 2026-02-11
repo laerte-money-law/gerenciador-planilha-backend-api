@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
+import { parse } from 'csv-parse/sync';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
 import { Role } from 'src/security/role/role.enum';
@@ -9,6 +10,7 @@ import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-respons
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 import * as XLSX from 'xlsx';
 import { RowStatus } from './RowStatus';
+import { extname } from 'path';
 
 @Injectable()
 export class SpreadsheetService {
@@ -28,26 +30,62 @@ export class SpreadsheetService {
     const queryRunner = this.dataSource.createQueryRunner();
 
     try {
-      // ...existing code...
-      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      if (!sheetName) {
-        throw new Error('XLSX sem sheets');
+      // Detect extension and parse accordingly
+      const extension = (extname(file.originalname || '') || '').toLowerCase();
+
+      let records: any[] = [];
+
+      if (extension === '.xlsx') {
+        // Parse XLSX buffer using xlsx
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          throw new Error('XLSX sem sheets');
+        }
+        const sheet = workbook.Sheets[sheetName];
+        const arr: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+        records = arr.map((r) => (Array.isArray(r) ? r.map((c) => (c === null || c === undefined ? '' : String(c))) : []));
+      } else {
+        // Parse CSV: try both ';' and ',' and choose the one that fits header length best
+        const content = file.buffer.toString('utf-8');
+
+        const tryParse = (delim: string) => {
+          try {
+            const parsed: string[][] = parse(content, { skip_empty_lines: true, delimiter: delim });
+            return parsed;
+          } catch (e) {
+            console.warn(`[importCsv] parse with delimiter ${delim} failed:`, e);
+            return [] as string[][];
+          }
+        };
+
+        const parsedSemi = tryParse(';');
+        const parsedComma = tryParse(',');
+
+        const score = (parsed: string[][]) => {
+          if (!parsed || parsed.length === 0) return 0;
+          const headerLen = parsed[0].length;
+          const rows = parsed.slice(1);
+          return rows.filter(r => Array.isArray(r) && r.length === headerLen).length;
+        };
+
+        const scoreSemi = score(parsedSemi);
+        const scoreComma = score(parsedComma);
+
+        const chosenParsed = scoreSemi >= scoreComma ? parsedSemi : parsedComma;
+        const chosenDelimiter = scoreSemi >= scoreComma ? ';' : ',';
+
+        console.log(`[importCsv] delimiter scores -> semicolon: ${scoreSemi}, comma: ${scoreComma}. Chosen: '${chosenDelimiter}'`);
+
+        records = chosenParsed.map((r: any) => (Array.isArray(r) ? r.map((c: any) => (c === null || c === undefined ? '' : String(c))) : []));
       }
-      const sheet = workbook.Sheets[sheetName];
-      const arr: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
-      const records = arr.map((r) =>
-        Array.isArray(r)
-          ? r.map((c) => (c === null || c === undefined ? '' : String(c)))
-          : [],
-      );
 
       console.log('[importCsv] records count:', records.length);
 
       const [rawHeader, ...rowsRaw] = records;
 
       if (!rawHeader || rawHeader.length === 0) {
-        throw new Error('XLSX sem header');
+        throw new Error('XLSX/CSV sem header');
       }
 
       // Normalize rows: ensure arrays, trim cell strings and remove completely empty rows
@@ -59,7 +97,6 @@ export class SpreadsheetService {
       const expectedColumnCount = columns.length;
 
       // IMPORTANTE: Garantir que cada linha tem exatamente expectedColumnCount colunas
-      // Remover colunas extras ou preencher com '' se faltar
       const normalizedRows = rows.map(row => {
         const normalized: string[] = [];
         for (let i = 0; i < expectedColumnCount; i++) {
@@ -76,7 +113,7 @@ export class SpreadsheetService {
         console.log('[importCsv] verifying all rows have expectedColumnCount columns:', normalizedRows.every(r => r.length === expectedColumnCount));
       }
 
-      // CREATE TABLE
+      // CREATE TABLE (mantido exatamente como antes)
 
       const tableName = `spreadsheet_${Date.now()}`;
 
@@ -127,8 +164,7 @@ export class SpreadsheetService {
         }
 
         // Adicionar valores das colunas extras
-        //values.push(`'${(status ?? 'IN PROGRESS').replace(/'/g, "''")}'`); // status
-        values.push(`'${RowStatus.IN_PROGRESS}'`); // created_by
+        values.push(`'${RowStatus.IN_PROGRESS}'`); // status
         values.push(`${userId}`); // created_by
         values.push(`${userId}`); // last_updated_by
         values.push(`${teamId}`); // team_id
