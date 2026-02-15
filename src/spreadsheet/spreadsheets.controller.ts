@@ -18,12 +18,12 @@ export class SpreadsheetController {
   @UseInterceptors(
     FileInterceptor('file'),
   )
-  async importCsv(
+  async importSpreadsheet(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
   ) {
 
-    return this.spreadsheetService.importCsv(
+    return this.spreadsheetService.importSpreadsheet(
       file,
       1,
       1,
