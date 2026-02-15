@@ -1,4 +1,4 @@
-import {  Body, Controller, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {  Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -64,5 +64,16 @@ export class SpreadsheetController {
       teamId,
       filters,
     );
+  }
+
+  @Delete('spreadsheets/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async deleteSpreadsheet(
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    const { role, teamId } = req.user;
+    return this.spreadsheetService.deleteSpreadsheet(id, role, teamId);
   }
 }

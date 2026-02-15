@@ -11,6 +11,7 @@ import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto
 import * as XLSX from 'xlsx';
 import { RowStatus } from './RowStatus';
 import { extname } from 'path';
+import { DeleteSpreadsheetByIdUsecase } from './usecase/delete-spreadsheet-by-id.usecase';
 
 @Injectable()
 export class SpreadsheetService {
@@ -18,6 +19,7 @@ export class SpreadsheetService {
     private readonly dataSource: DataSource,
     @InjectRepository(SpreadsheetMetadata)
     private readonly metadataRepository: Repository<SpreadsheetMetadata>,
+    private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUsecase,
   ) {}
 
   async importCsv(
@@ -344,6 +346,14 @@ export class SpreadsheetService {
       limit,
       total,
     };
+  }
+
+  async deleteSpreadsheet(
+    spreadsheetId: string,
+    role: string,
+    teamId: number,
+  ): Promise<{ message: string; deletedId: string }> {
+    return this.deleteSpreadsheetByIdUseCase.execute(spreadsheetId, role, teamId);
   }
 
   private sanitizeColumn(name: string): string {
