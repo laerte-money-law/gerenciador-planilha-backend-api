@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SpreadsheetModule } from './spreadsheet/spreadsheets.module';
 import { SecurityModule } from './security/security.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AttachmentModule } from './attachment/attachment.module';
 
 
 @Module({
@@ -39,6 +40,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     AuthModule,
     TeamModule,
     SecurityModule,
+    AttachmentModule,
   ],
 })
 export class AppModule {}
