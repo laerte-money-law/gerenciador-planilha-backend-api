@@ -1,6 +1,6 @@
 export enum RowStatus {
     PENDING = 'PENDING',
-    IN_PROGRESS = 'IN_PROGRESS',
-    COMPLETED = 'COMPLETED',
+    IN_PROGRESS = 'ANDAMENTO',
+    COMPLETED = 'VALIDADO',
     FAILED = 'FAILED'
 }

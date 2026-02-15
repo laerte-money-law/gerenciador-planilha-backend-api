@@ -56,7 +56,6 @@ export class SpreadsheetController {
     @Req() req: any,
     @Query() filters: SpreadsheetFiltersDto,
   ) {
-    console.log("Rodou AQUI")
     const { role, teamId } = req.user;
     return this.spreadsheetService.getSpreadsheetByIdPaginated(
       id,
