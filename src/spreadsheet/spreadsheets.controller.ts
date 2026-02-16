@@ -1,4 +1,4 @@
-import {  Body, Controller, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {  Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -8,6 +8,7 @@ import { Role } from 'src/security/role/role.enum';
 import { CreateSpreadsheetDto } from './model/dto/createSpreadsheet.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 import { AddColumnDto } from './model/dto/add-column.dto';
+import { DeleteColumnDto } from './model/dto/delete-column.dto';
 
 @Controller()
 export class SpreadsheetController {
@@ -72,6 +73,32 @@ export class SpreadsheetController {
     return this.spreadsheetService.addColumnToSpreadsheet(
       spreadsheetId,
       addColumnDto,
+    );
+  }
+
+  @Delete('spreadsheets/:spreadsheetId/column')
+  @UseGuards(AuthGuard('jwt'))
+  async deleteColumn(
+    @Param('spreadsheetId') spreadsheetId: string,
+    @Body() deleteColumnDto: DeleteColumnDto,
+  ) {
+    return this.spreadsheetService.deleteColumnFromSpreadsheet(
+      spreadsheetId,
+      deleteColumnDto,
+    );
+  }
+
+  @Get('spreadsheets/:spreadsheetId/columns')
+  @UseGuards(AuthGuard('jwt'))
+  async getSpreadsheetColumns(
+    @Param('spreadsheetId') spreadsheetId: string,
+    @Req() req: any,
+  ) {
+    const { role, teamId } = req.user;
+    return this.spreadsheetService.getSpreadsheetColumns(
+      spreadsheetId,
+      role,
+      teamId,
     );
   }
 }
