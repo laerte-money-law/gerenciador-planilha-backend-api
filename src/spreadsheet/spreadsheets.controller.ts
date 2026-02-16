@@ -1,4 +1,4 @@
-import {  Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {  Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -9,6 +9,7 @@ import { CreateSpreadsheetDto } from './model/dto/createSpreadsheet.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { DeleteColumnDto } from './model/dto/delete-column.dto';
+import { UpdateSpreadsheetRowDto } from './model/dto/update-spreadsheet-row.dto';
 
 @Controller()
 export class SpreadsheetController {
@@ -99,6 +100,20 @@ export class SpreadsheetController {
       spreadsheetId,
       role,
       teamId,
+    );
+  }
+
+  @Post('spreadsheets/:spreadsheetId/:rowId')
+  @UseGuards(AuthGuard('jwt'))
+  async updateSpreadsheetRow(
+    @Param('spreadsheetId') spreadsheetId: string,
+    @Param('rowId') rowId: string,
+    @Body() updateData: Record<string, string>,
+  ) {
+    return this.spreadsheetService.updateSpreadsheetRow(
+      spreadsheetId,
+      Number(rowId),
+      updateData,
     );
   }
 }

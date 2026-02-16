@@ -6,6 +6,7 @@ import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
 import { ImportSpreadsheetUsecase } from './usecase/import-spreadsheet.usecase';
 import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadsheet.usecase';
 import { DeleteColumnInSpreadsheet } from './usecase/delete-column-in-spreadsheet';
+import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.usecase';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DeleteColumnInSpreadsheet } from './usecase/delete-column-in-spreadshee
     ImportSpreadsheetUsecase,
     AddColumnInSpreadsheetUseCase,
     DeleteColumnInSpreadsheet,
+    UpdateSpreadsheetRowUsecase,
   ],
   exports: [
     SpreadsheetService,
