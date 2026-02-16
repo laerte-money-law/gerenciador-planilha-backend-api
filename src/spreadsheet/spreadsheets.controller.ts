@@ -7,6 +7,7 @@ import { Roles } from 'src/security/role/role.decorator';
 import { Role } from 'src/security/role/role.enum';
 import { CreateSpreadsheetDto } from './model/dto/createSpreadsheet.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
+import { AddColumnDto } from './model/dto/add-column.dto';
 
 @Controller()
 export class SpreadsheetController {
@@ -15,15 +16,12 @@ export class SpreadsheetController {
   @Post('import')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN, Role.USER)
-  @UseInterceptors(
-    FileInterceptor('file'),
-  )
-  async importCsv(
+  @UseInterceptors(FileInterceptor('file'))
+  async importSpreadsheet(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
   ) {
-
-    return this.spreadsheetService.importCsv(
+    return this.spreadsheetService.importSpreadsheet(
       file,
       1,
       1,
@@ -62,6 +60,18 @@ export class SpreadsheetController {
       role,
       teamId,
       filters,
+    );
+  }
+
+  @Post('spreadsheets/:spreadsheetId/column')
+  @UseGuards(AuthGuard('jwt'))
+  async addColumn(
+    @Param('spreadsheetId') spreadsheetId: string,
+    @Body() addColumnDto: AddColumnDto,
+  ) {
+    return this.spreadsheetService.addColumnToSpreadsheet(
+      spreadsheetId,
+      addColumnDto,
     );
   }
 }
