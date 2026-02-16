@@ -11,6 +11,9 @@ import { ImportSpreadsheetUsecase } from './usecase/import-spreadsheet.usecase';
 import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadsheet.usecase';
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { AddColumnResponseDto } from './model/dto/add-column.response.dto';
+import { DeleteColumnInSpreadsheet } from './usecase/delete-column-in-spreadsheet';
+import { DeleteColumnDto, DeleteColumnResponseDto } from './model/dto/delete-column.dto';
+import { GetSpreadsheetColumnsResponseDto } from './model/dto/get-spreadsheet-columns.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -20,6 +23,7 @@ export class SpreadsheetService {
     private readonly metadataRepository: Repository<SpreadsheetMetadata>,
     private readonly importSpreadsheetUseCase: ImportSpreadsheetUsecase,
     private readonly addColumnInSpreadsheet: AddColumnInSpreadsheetUseCase,
+    private readonly deleteColumnInSpreadsheet: DeleteColumnInSpreadsheet,
   ) {}
 
   async importSpreadsheet(
@@ -152,5 +156,61 @@ export class SpreadsheetService {
     columnName: AddColumnDto,
   ): Promise<AddColumnResponseDto> {
     return await this.addColumnInSpreadsheet.execute(spreadsheetId, columnName);
+  }
+
+  async deleteColumnFromSpreadsheet(
+    spreadsheetId: string,
+    deleteColumnDto: DeleteColumnDto,
+  ): Promise<DeleteColumnResponseDto> {
+    return await this.deleteColumnInSpreadsheet.execute(
+      spreadsheetId,
+      deleteColumnDto,
+    );
+  }
+
+  async getSpreadsheetColumns(
+    spreadsheetId: string,
+    role: string,
+    teamId: number,
+  ): Promise<GetSpreadsheetColumnsResponseDto> {
+    const metadata = await this.metadataRepository.findOne({
+      where:
+        role === 'ADMIN'
+          ? { id: spreadsheetId }
+          : { id: spreadsheetId, team: { id: teamId } },
+    });
+
+    if (!metadata) {
+      throw new Error('Planilha não encontrada');
+    }
+
+    const tableName = metadata.tableName;
+
+    // Query one row to get column names
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .from(tableName, 't')
+      .select('*')
+      .limit(1)
+      .getRawMany();
+
+    const columns =
+      rows.length > 0
+        ? Object.keys(rows[0]).filter(
+            (col) =>
+              ![
+                'created_by',
+                'last_updated_by',
+                'team_id',
+                'created_at',
+              ].includes(col),
+          )
+        : [];
+
+    return {
+      id: metadata.id,
+      name: metadata.originalFileName,
+      columns,
+    };
   }
 }
