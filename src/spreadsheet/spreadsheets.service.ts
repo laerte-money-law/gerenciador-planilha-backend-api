@@ -8,6 +8,9 @@ import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 import { ImportSpreadsheetUsecase } from './usecase/import-spreadsheet.usecase';
+import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadsheet.usecase';
+import { AddColumnDto } from './model/dto/add-column.dto';
+import { AddColumnResponseDto } from './model/dto/add-column.response.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -15,7 +18,8 @@ export class SpreadsheetService {
     private readonly dataSource: DataSource,
     @InjectRepository(SpreadsheetMetadata)
     private readonly metadataRepository: Repository<SpreadsheetMetadata>,
-    private readonly importSpreadsheetUseCase: ImportSpreadsheetUsecase
+    private readonly importSpreadsheetUseCase: ImportSpreadsheetUsecase,
+    private readonly addColumnInSpreadsheet: AddColumnInSpreadsheetUseCase,
   ) {}
 
   async importSpreadsheet(
@@ -23,9 +27,15 @@ export class SpreadsheetService {
     userId: number,
     teamId: number,
     service: string,
-    status: string
+    status: string,
   ) {
-    return this.importSpreadsheetUseCase.execute(file, userId, teamId, service, status);
+    return this.importSpreadsheetUseCase.execute(
+      file,
+      userId,
+      teamId,
+      service,
+      status,
+    );
   }
 
   async getSpreadsheets(
@@ -37,10 +47,7 @@ export class SpreadsheetService {
     const skip = (page - 1) * limit;
 
     const [items, total] = await this.metadataRepository.findAndCount({
-      where:
-        role === Role.ADMIN
-          ? {}
-          : { team: { id: teamId } },
+      where: role === Role.ADMIN ? {} : { team: { id: teamId } },
       order: { createdAt: 'DESC' },
       skip,
       take: limit,
@@ -50,7 +57,7 @@ export class SpreadsheetService {
     });
 
     return {
-      data: items.map(item => ({
+      data: items.map((item) => ({
         id: item.id,
         name: item.originalFileName,
         team: item.team,
@@ -70,7 +77,6 @@ export class SpreadsheetService {
     teamId: number,
     filters: SpreadsheetFiltersDto,
   ): Promise<SpreadsheetViewResponseDto> {
-
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 15;
     const offset = (page - 1) * limit;
@@ -79,7 +85,7 @@ export class SpreadsheetService {
       where:
         role === 'ADMIN'
           ? { id: spreadsheetId }
-          : { id: spreadsheetId, team: {id: teamId} },
+          : { id: spreadsheetId, team: { id: teamId } },
     });
 
     if (!metadata) {
@@ -88,9 +94,7 @@ export class SpreadsheetService {
 
     const tableName = metadata.tableName;
 
-    const baseQb = this.dataSource
-      .createQueryBuilder()
-      .from(tableName, 't');
+    const baseQb = this.dataSource.createQueryBuilder().from(tableName, 't');
 
     if (filters.status) {
       baseQb.andWhere('t.status = :status', {
@@ -119,11 +123,10 @@ export class SpreadsheetService {
       .limit(limit)
       .getRawMany();
 
-    
     const columns =
       rows.length > 0
         ? Object.keys(rows[0]).filter(
-            col =>
+            (col) =>
               ![
                 'created_by',
                 'last_updated_by',
@@ -144,5 +147,10 @@ export class SpreadsheetService {
     };
   }
 
-
+  async addColumnToSpreadsheet(
+    spreadsheetId: string,
+    columnName: AddColumnDto,
+  ): Promise<AddColumnResponseDto> {
+    return await this.addColumnInSpreadsheet.execute(spreadsheetId, columnName);
+  }
 }
