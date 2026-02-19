@@ -12,10 +12,10 @@ export class Attachment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'nvarchar', length: 255 })
   originalName: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
   description: string;
 
   @Column()

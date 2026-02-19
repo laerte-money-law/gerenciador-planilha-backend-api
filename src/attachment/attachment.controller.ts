@@ -60,10 +60,13 @@ export class AttachmentsController {
       attachment.contentType.startsWith('image/') ||
       attachment.contentType === 'application/pdf';
 
+    const encodedFileName = encodeURIComponent(attachment.originalName);
+
     res.setHeader('Content-Type', attachment.contentType);
+
     res.setHeader(
       'Content-Disposition',
-      `${isInline ? 'inline' : 'attachment'}; filename="${attachment.originalName}"`,
+      `${isInline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodedFileName}`
     );
 
     res.send(attachment.data);
