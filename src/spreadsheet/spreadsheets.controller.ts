@@ -9,7 +9,8 @@ import { CreateSpreadsheetDto } from './model/dto/createSpreadsheet.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { DeleteColumnDto } from './model/dto/delete-column.dto';
-import { UpdateSpreadsheetRowDto } from './model/dto/update-spreadsheet-row.dto';
+import { StreamableFile } from '@nestjs/common';
+
 
 @Controller()
 export class SpreadsheetController {
@@ -115,5 +116,20 @@ export class SpreadsheetController {
       Number(rowId),
       updateData,
     );
+  }
+
+  @Get('spreadsheets/:id/export')
+  @UseGuards(AuthGuard('jwt'))
+  async exportSpreadsheet(
+    @Param('id') id: string,
+    @Req() req: any,) {
+    const { role, teamId } = req.user;
+
+    const result = await this.spreadsheetService.exportSpreadsheet(id, role, teamId);
+
+    return new StreamableFile(result.buffer, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      disposition: `attachment; filename*=UTF-8''${encodeURIComponent(result.fileName)}`,
+    });
   }
 }
