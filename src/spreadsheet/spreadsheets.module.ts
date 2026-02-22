@@ -7,11 +7,14 @@ import { ImportSpreadsheetUsecase } from './usecase/import-spreadsheet.usecase';
 import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadsheet.usecase';
 import { DeleteColumnInSpreadsheet } from './usecase/delete-column-in-spreadsheet';
 import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.usecase';
+import { ExportSpreadsheetUsecase } from './usecase/export-spreadsheet.usecase';
+import { Attachment } from 'src/attachment/model/attachment.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       SpreadsheetMetadata,
+      Attachment
     ]),
   ],
   controllers: [SpreadsheetController],
@@ -21,6 +24,7 @@ import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.us
     AddColumnInSpreadsheetUseCase,
     DeleteColumnInSpreadsheet,
     UpdateSpreadsheetRowUsecase,
+    ExportSpreadsheetUsecase,
   ],
   exports: [
     SpreadsheetService,
