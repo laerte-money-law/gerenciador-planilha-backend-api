@@ -70,7 +70,7 @@ export class ExportSpreadsheetUsecase {
       .createQueryBuilder()
       .select('t.*')
       .from(tableName, 't')
-      .orderBy('t.id', 'ASC')
+      .orderBy('t.id_ml', 'ASC')
       .getRawMany();
   }
 
