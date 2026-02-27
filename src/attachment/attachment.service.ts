@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Attachment } from './model/attachment.entity';
 import { ConfigService } from '@nestjs/config';
+import { SpreadsheetMetadata } from 'src/spreadsheet/model/spreadsheet.metadata.entity';
 
 @Injectable()
 export class AttachmentService {
@@ -22,6 +23,8 @@ export class AttachmentService {
     @InjectRepository(Attachment)
     private readonly repository: Repository<Attachment>,
     private readonly configService: ConfigService,
+    @InjectRepository(SpreadsheetMetadata)
+    private readonly metadataRepository: Repository<SpreadsheetMetadata>
 
   ) {}
 
@@ -76,6 +79,31 @@ export class AttachmentService {
 
     return attachment;
   }
+  async delete(id: string, role: string, teamId: number, spreadsheetMetadataId: string) {
+
+    const metadata = await this.metadataRepository.findOne({
+      where:
+        role === 'ADMIN'
+          ? { id: spreadsheetMetadataId }
+          : { id: spreadsheetMetadataId, team: { id: teamId } },
+    });
+
+    if (!metadata) {
+      throw new NotFoundException('Planilha não encontrada');
+    }
+
+    const attachment = await this.repository.findOne({
+      where: { id, spreadsheetMetadataId },
+    });
+
+    if (!attachment) {
+      throw new NotFoundException('Anexo não encontrado');
+    }
+
+    await this.repository.remove(attachment);
+
+    return { message: 'Attachment deleted!' };
+  }
 
   private validateFile(file: Express.Multer.File) {
     if (!file) {
@@ -92,4 +120,5 @@ export class AttachmentService {
       throw new BadRequestException('File type not allowed');
     }
   }
+
 }

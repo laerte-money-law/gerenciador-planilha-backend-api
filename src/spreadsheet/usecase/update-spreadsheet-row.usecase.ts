@@ -51,7 +51,7 @@ export class UpdateSpreadsheetRowUsecase {
     const updateSql = `
       UPDATE [${tableName}]
       SET ${setClause.join(', ')}
-      WHERE id = @${index}
+      WHERE id_ml = @${index}
     `;
 
     params.push(rowId);

@@ -153,9 +153,9 @@ export class ImportSpreadsheetUsecase {
 
       const createTableSQL = `
         CREATE TABLE [${tableName}] (
-          id INT IDENTITY(1,1) PRIMARY KEY,
+          id_ml INT IDENTITY(1,1) PRIMARY KEY,
           ${columns.map((c) => `[${c}] NVARCHAR(MAX)`).join(',')},
-          [status] VARCHAR(30),
+          [status_ml] VARCHAR(30),
           [created_by] INT NOT NULL,
           [last_updated_by] INT NOT NULL,
           [team_id] INT NOT NULL,
@@ -173,7 +173,7 @@ export class ImportSpreadsheetUsecase {
 
       const insertColumns = [
         ...columns,
-        'status',
+        'status_ml',
         'created_by',
         'last_updated_by',
         'team_id',

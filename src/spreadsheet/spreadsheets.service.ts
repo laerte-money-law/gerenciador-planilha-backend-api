@@ -106,7 +106,7 @@ export class SpreadsheetService {
     const baseQb = this.dataSource.createQueryBuilder().from(tableName, 't');
 
     if (filters.status) {
-      baseQb.andWhere('t.status = :status', {
+      baseQb.andWhere('t.status_ml = :status', {
         status: filters.status,
       });
     }
@@ -127,7 +127,7 @@ export class SpreadsheetService {
     const rows = await baseQb
       .clone()
       .select('*')
-      .orderBy('t.id', 'ASC')
+      .orderBy('t.id_ml', 'ASC')
       .offset(offset)
       .limit(limit)
       .getRawMany();

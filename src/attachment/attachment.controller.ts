@@ -8,11 +8,14 @@ import {
   UploadedFile,
   UseInterceptors,
   Res,
+  Delete,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AttachmentService } from './attachment.service';
-
+import { AuthGuard } from '@nestjs/passport';
 @Controller('attachments')
 export class AttachmentsController {
   constructor(private readonly service: AttachmentService) {}
@@ -70,5 +73,14 @@ export class AttachmentsController {
     );
 
     res.send(attachment.data);
+  }
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  async delete(
+    @Param('id')id: string,
+    @Query('spreadsheetMetadataId') spreadsheetMetadataId: string,
+    @Req() req: any) {
+    const { teamId, role } = req.user;
+    return this.service.delete( id, role, teamId, spreadsheetMetadataId);
   }
 }
