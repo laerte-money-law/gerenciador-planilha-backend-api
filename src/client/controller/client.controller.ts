@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ClientService } from '../service/client.service';
 import { ClientSaveInputDto } from '../model/dto/client-save.input.dto';
@@ -11,6 +11,12 @@ export class ClientController {
   @UseGuards(AuthGuard('jwt'))
   async createClient(@Body() clientSaveInputDto: ClientSaveInputDto) {
     return await this.clientService.createClient(clientSaveInputDto);
+  }
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'))
+  async getAllClients() {
+    return await this.clientService.getAllClients();
   }
 }
 

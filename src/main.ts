@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import 'dotenv/config';
-import { json, urlencoded } from 'express';
 
 console.log("URL FRONTEND");
 console.log(process.env.FRONTEND_URL);
