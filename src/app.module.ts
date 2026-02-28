@@ -8,6 +8,7 @@ import { SpreadsheetModule } from './spreadsheet/spreadsheets.module';
 import { SecurityModule } from './security/security.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AttachmentModule } from './attachment/attachment.module';
+import { ClientModule } from './client/client.module';
 
 
 @Module({
@@ -41,6 +42,7 @@ import { AttachmentModule } from './attachment/attachment.module';
     TeamModule,
     SecurityModule,
     AttachmentModule,
+    ClientModule,
   ],
 })
 export class AppModule {}
