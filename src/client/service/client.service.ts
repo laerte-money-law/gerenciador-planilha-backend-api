@@ -3,12 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from '../model/client.entity';
 import { ClientOutputDto } from '../model/dto/client.ouput.dto';
+import { ExternalCNPJSearchData } from './external-cnpj-search.service';
 
 @Injectable()
 export class ClientService {
   constructor(
     @InjectRepository(Client)
     private readonly clientRepository: Repository<Client>,
+    private readonly externalCNPJSearchData: ExternalCNPJSearchData,
   ) {}
 
   async createClient(clientData: Partial<Client>): Promise<Client> {
@@ -17,9 +19,9 @@ export class ClientService {
   }
 
   async getAllClients(): Promise<ClientOutputDto[]> {
-    const clients =  await this.clientRepository.find();
-    return clients.map(client => {
-      const dto = new ClientOutputDto()
+    const clients = await this.clientRepository.find();
+    return clients.map((client) => {
+      const dto = new ClientOutputDto();
       dto.id = client.id;
       dto.companyName = client.companyName;
       dto.cnpj = client.cnpj;
@@ -32,7 +34,11 @@ export class ClientService {
       dto.contactName = client.contactName;
       dto.contactPhone = client.contactPhone;
       return dto;
-    })
+    });
+  }
+
+  async getCnpjInfo(cnpj: string){
+    return await this.externalCNPJSearchData.getCnpjInfo(cnpj);
   }
 }
 
