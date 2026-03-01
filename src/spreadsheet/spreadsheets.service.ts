@@ -35,6 +35,7 @@ export class SpreadsheetService {
     file: Express.Multer.File,
     userId: number,
     teamId: number,
+    clientId: number,
     service: string,
     status: string,
   ) {
@@ -42,6 +43,7 @@ export class SpreadsheetService {
       file,
       userId,
       teamId,
+      clientId,
       service,
       status,
     );

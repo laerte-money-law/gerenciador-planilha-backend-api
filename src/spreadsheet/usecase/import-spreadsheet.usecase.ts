@@ -19,6 +19,7 @@ export class ImportSpreadsheetUsecase {
     file: Express.Multer.File,
     userId: number,
     teamId: number,
+    clientId: number,
     service: string,
     status: string,
   ) {
@@ -243,12 +244,13 @@ export class ImportSpreadsheetUsecase {
       }
 
       console.log(`[importCsv] completed: inserted ${totalInserted} rows`);
-
+      console.log(`IDS: CLIENT ID ${clientId}; TEAM ID ${teamId}; USER ID ${userId}`);
       // SAVE METADATA
       const metadata = this.metadataRepository.create({
         tableName,
         originalFileName: file.originalname,
         team: { id: teamId },
+        client: { id: clientId },
         createdBy: userId,
         service,
         status,

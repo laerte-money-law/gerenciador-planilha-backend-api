@@ -1,5 +1,6 @@
 import { Team } from "../../team/model/team.entity";
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinColumn, ManyToOne } from "typeorm";
+import { Client } from '../../client/model/client.entity';
 
 @Entity('spreadsheet_metadata')
 export class SpreadsheetMetadata {
@@ -15,6 +16,10 @@ export class SpreadsheetMetadata {
   @ManyToOne(() => Team, (team) => team.spreadsheets, { eager: false })
   @JoinColumn({ name: 'team_id' })
   team: Team;
+
+  @ManyToOne(() => Client)
+  @JoinColumn({ name: 'client_id' })
+  client: Client;
 
   @Column({ name: 'service', type: 'nvarchar', length: 100, nullable: true })
   service: string;
