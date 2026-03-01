@@ -24,10 +24,12 @@ export class SpreadsheetController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
   ) {
+    console.log(body);
     return this.spreadsheetService.importSpreadsheet(
       file,
       1,
       1,
+      body.clientId,
       body.service,
       body.status,
     );
