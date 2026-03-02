@@ -18,5 +18,20 @@ export class ClientController {
   async getAllClients() {
     return await this.clientService.getAllClients();
   }
+
+  @Get('/:clientId')
+  @UseGuards(AuthGuard('jwt'))
+  async getClientById(@Body('clientId') clientId: number) {
+    console.log("Ta rodando aqui")
+    console.log(clientId);
+    return await this.clientService.getClientById(clientId);
+  }
+
+  @Get('/:clientId/users')
+  @UseGuards(AuthGuard('jwt'))
+  async getUsersByClientId(@Body('clientId') clientId: number) {
+    return await this.clientService.getUsersByClientId(clientId);
+  }
+
 }
 

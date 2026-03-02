@@ -16,6 +16,7 @@ import { TeamModule } from 'src/team/team.module';
     controllers:[UserController],
     exports: [
         UserService,
+      UserRepository,
     ]
 })
 export class UsersModule {}
