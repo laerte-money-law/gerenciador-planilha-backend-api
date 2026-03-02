@@ -38,4 +38,15 @@ export class UserRepository {
         }
     }
 
+    async getAllUsers(): Promise<User[]> {
+        try{
+            return await this.userRepository.find({
+            relations: ['team'],
+        });
+        }catch(error) {
+            if(error instanceof QueryFailedError) throw new ConflictException(error.message);
+            throw error;
+        }
+    }
+
 }

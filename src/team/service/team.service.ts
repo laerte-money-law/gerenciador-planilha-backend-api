@@ -13,4 +13,8 @@ export class TeamService{
     createTeam(team: TeamDto): Promise<Team> {
         return this.teamRepository.createTeam(team.name);
     }
+
+    getAllTeams(): Promise<Team[]> {
+        return this.teamRepository.findAllTeams();
+    }
 }

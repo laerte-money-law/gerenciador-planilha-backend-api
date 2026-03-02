@@ -25,4 +25,8 @@ export class TeamRepository {
         where: { id },
         });
     }
+
+    async findAllTeams(): Promise<Team[]> {
+        return this.teamRepository.find();
+    }
 }

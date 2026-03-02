@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { TeamService } from "../service/team.service";
 import { TeamDto } from "../model/dto/teamDto";
 import { RolesGuard } from "src/security/role/role.guard";
@@ -16,5 +16,12 @@ export class TeamController{
     @Post('teams')
     createTeam(@Body() newTeam: TeamDto){
         return this.teamService.createTeam(newTeam);
+    }
+
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(Role.ADMIN)
+    @Get('teams')
+    getAllTeams(){
+        return this.teamService.getAllTeams();
     }
 }
