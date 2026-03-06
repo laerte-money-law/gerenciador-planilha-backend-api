@@ -27,8 +27,8 @@ export const userMapperToResponseDto = (user: User): UserResponseDto => {
         name: user.name,
         email: user.email,
         team: {
-            teamId: user.team.id,
-            teamName: user.team.name
+            id: user.team.id,
+            name: user.team.name
         },
         role: user.role
     });

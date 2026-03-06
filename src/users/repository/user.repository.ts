@@ -3,7 +3,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "../model/user.entity";
 import { QueryFailedError, Repository } from "typeorm";
 import { TeamRepository } from "src/team/repository/team.repository";
-
+import { PaginatedResponseDto } from "src/shared/dto/paginated-response.dto";
+import * as bcrypt from 'bcryptjs';
 @Injectable()
 export class UserRepository {
     constructor(
@@ -38,15 +39,91 @@ export class UserRepository {
         }
     }
 
-    async getAllUsers(): Promise<User[]> {
-        try{
-            return await this.userRepository.find({
+    async getAllUsers(page: number, limit: number): Promise<PaginatedResponseDto<User>> {
+
+    const skip = (page - 1) * limit;
+
+    try {
+
+        const [items, total] = await this.userRepository.findAndCount({
             relations: ['team'],
+            skip,
+            take: limit
         });
-        }catch(error) {
-            if(error instanceof QueryFailedError) throw new ConflictException(error.message);
-            throw error;
+
+        return {
+            data: items,
+            page,
+            limit,
+            total
+        };
+
+    } catch (error) {
+
+        if (error instanceof QueryFailedError) {
+            throw new ConflictException(error.message);
         }
+
+        throw error;
     }
 
+    }
+
+     async updateUser(id: number, dto: any) {
+         const user = await this.userRepository.findOne({
+            where: { id },
+            relations: ['team']
+        });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    if (dto.teamId) {
+        const team = await this.teamRepository.findById(dto.teamId);
+
+    if (!team) {
+        throw new NotFoundException("Team not found");
+    }
+
+    user.team = team;
+    }
+
+    if (dto.name) {
+      user.name = dto.name;
+    }
+
+    if (dto.email) {
+      user.email = dto.email;
+    }
+
+    if (dto.role) {
+      user.role = dto.role;
+    }
+
+    if (dto.teamId) {
+      user.team = { id: dto.teamId } as any;
+    }
+
+    if (dto.password) {
+      user.password = await bcrypt.hash(dto.password, 10);
+    }
+
+    return this.userRepository.save(user);
+    }
+
+    async deleteUser(id: number) {
+            const user = await this.userRepository.findOne({
+        where: { id }
+        });
+
+        if (!user) {
+        throw new NotFoundException('Usuário não encontrado');
+        }
+
+        await this.userRepository.delete(id);
+
+        return {
+        message: 'Usuário removido com sucesso'
+        };
+    }
 }
