@@ -11,13 +11,11 @@ import { ExportSpreadsheetUsecase } from './usecase/export-spreadsheet.usecase';
 import { Attachment } from 'src/attachment/model/attachment.entity';
 import { DeleteSpreadsheetByIdUseCase } from './usecase/delete-spreadsheet-by-id.usecase';
 import { InfraModule } from '../infra/infra.module';
+import { GetSpreadsheetInformationUseCase } from './usecase/get-spreadsheet-information.usecase';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      SpreadsheetMetadata,
-      Attachment
-    ]),
+    TypeOrmModule.forFeature([SpreadsheetMetadata, Attachment]),
     InfraModule,
   ],
   controllers: [SpreadsheetController],
@@ -28,10 +26,9 @@ import { InfraModule } from '../infra/infra.module';
     DeleteColumnInSpreadsheet,
     UpdateSpreadsheetRowUsecase,
     ExportSpreadsheetUsecase,
-    DeleteSpreadsheetByIdUseCase
+    DeleteSpreadsheetByIdUseCase,
+    GetSpreadsheetInformationUseCase,
   ],
-  exports: [
-    SpreadsheetService,
-  ],
+  exports: [SpreadsheetService],
 })
 export class SpreadsheetModule {}

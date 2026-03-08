@@ -18,6 +18,7 @@ import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.us
 import { UpdateSpreadsheetRowResponseDto } from './model/dto/update-spreadsheet-row.dto';
 import { ExportSpreadsheetUsecase } from './usecase/export-spreadsheet.usecase';
 import { DeleteSpreadsheetByIdUseCase } from './usecase/delete-spreadsheet-by-id.usecase';
+import { GetSpreadsheetInformationUseCase } from './usecase/get-spreadsheet-information.usecase';
 
 @Injectable()
 export class SpreadsheetService {
@@ -31,6 +32,7 @@ export class SpreadsheetService {
     private readonly updateSpreadsheetRowUsecase: UpdateSpreadsheetRowUsecase,
     private readonly exportSpreadsheetUsecase: ExportSpreadsheetUsecase,
     private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUseCase,
+    private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
   ) {}
 
   async importSpreadsheet(
@@ -190,45 +192,7 @@ export class SpreadsheetService {
     role: string,
     teamId: number,
   ): Promise<GetSpreadsheetColumnsResponseDto> {
-    const metadata = await this.metadataRepository.findOne({
-      where:
-        role === 'ADMIN'
-          ? { id: spreadsheetId }
-          : { id: spreadsheetId, team: { id: teamId } },
-    });
-
-    if (!metadata) {
-      throw new Error('Planilha não encontrada');
-    }
-
-    const tableName = metadata.tableName;
-
-    // Query one row to get column names
-    const rows = await this.dataSource
-      .createQueryBuilder()
-      .from(tableName, 't')
-      .select('*')
-      .limit(1)
-      .getRawMany();
-
-    const columns =
-      rows.length > 0
-        ? Object.keys(rows[0]).filter(
-            (col) =>
-              ![
-                'created_by',
-                'last_updated_by',
-                'team_id',
-                'created_at',
-              ].includes(col),
-          )
-        : [];
-
-    return {
-      id: metadata.id,
-      name: metadata.originalFileName,
-      columns,
-    };
+    return this.getSpreadsheetInformationUseCase.execute(spreadsheetId);
   }
 
   async updateSpreadsheetRow(
