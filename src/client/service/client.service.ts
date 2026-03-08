@@ -20,21 +20,7 @@ export class ClientService {
 
   async getAllClients(): Promise<ClientOutputDto[]> {
     const clients = await this.clientRepository.find();
-    return clients.map((client) => {
-      const dto = new ClientOutputDto();
-      dto.id = client.id;
-      dto.companyName = client.companyName;
-      dto.cnpj = client.cnpj;
-      dto.address = client.address;
-      dto.neighborhood = client.neighborhood;
-      dto.city = client.city;
-      dto.state = client.state;
-      dto.cep = client.cep;
-      dto.contactEmail = client.contactEmail;
-      dto.contactName = client.contactName;
-      dto.contactPhone = client.contactPhone;
-      return dto;
-    });
+    return clients.map((client) => ClientOutputDto.fromEntity(client));
   }
 
   async getCnpjInfo(cnpj: string){

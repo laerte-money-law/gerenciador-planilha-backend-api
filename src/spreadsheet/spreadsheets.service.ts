@@ -19,6 +19,7 @@ import { UpdateSpreadsheetRowResponseDto } from './model/dto/update-spreadsheet-
 import { ExportSpreadsheetUsecase } from './usecase/export-spreadsheet.usecase';
 import { DeleteSpreadsheetByIdUseCase } from './usecase/delete-spreadsheet-by-id.usecase';
 import { GetSpreadsheetInformationUseCase } from './usecase/get-spreadsheet-information.usecase';
+import { ClientOutputDto } from '../client/model/dto/client.ouput.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -68,6 +69,7 @@ export class SpreadsheetService {
       take: limit,
       relations: {
         team: true,
+        client: true
       },
     });
 
@@ -78,6 +80,7 @@ export class SpreadsheetService {
         team: item.team,
         service: item.service,
         status: item.status,
+        client: ClientOutputDto.fromEntity(item.client),
         createdAt: item.createdAt,
       })),
       page,
