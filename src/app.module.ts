@@ -9,6 +9,7 @@ import { SecurityModule } from './security/security.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AttachmentModule } from './attachment/attachment.module';
 import { ClientModule } from './client/client.module';
+import { InfraModule } from './infra/infra.module';
 
 
 @Module({
@@ -16,7 +17,6 @@ import { ClientModule } from './client/client.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -43,6 +43,7 @@ import { ClientModule } from './client/client.module';
     SecurityModule,
     AttachmentModule,
     ClientModule,
+    InfraModule,
   ],
 })
 export class AppModule {}

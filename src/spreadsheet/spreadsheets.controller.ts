@@ -24,7 +24,6 @@ export class SpreadsheetController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
   ) {
-    console.log(body);
     return this.spreadsheetService.importSpreadsheet(
       file,
       1,
@@ -50,6 +49,13 @@ export class SpreadsheetController {
       Number(page),
       Number(limit),
     );
+  }
+
+  @Delete('spreadsheets/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN)
+  async deleteSpreadsheet(@Param('id') id: string) {
+    return this.spreadsheetService.deleteSpreadsheet(id);
   }
 
   @Get('spreadsheets/:id')

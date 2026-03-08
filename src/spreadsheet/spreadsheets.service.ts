@@ -17,6 +17,7 @@ import { GetSpreadsheetColumnsResponseDto } from './model/dto/get-spreadsheet-co
 import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.usecase';
 import { UpdateSpreadsheetRowResponseDto } from './model/dto/update-spreadsheet-row.dto';
 import { ExportSpreadsheetUsecase } from './usecase/export-spreadsheet.usecase';
+import { DeleteSpreadsheetByIdUseCase } from './usecase/delete-spreadsheet-by-id.usecase';
 
 @Injectable()
 export class SpreadsheetService {
@@ -28,7 +29,8 @@ export class SpreadsheetService {
     private readonly addColumnInSpreadsheet: AddColumnInSpreadsheetUseCase,
     private readonly deleteColumnInSpreadsheet: DeleteColumnInSpreadsheet,
     private readonly updateSpreadsheetRowUsecase: UpdateSpreadsheetRowUsecase,
-    private readonly exportSpreadsheetUsecase: ExportSpreadsheetUsecase
+    private readonly exportSpreadsheetUsecase: ExportSpreadsheetUsecase,
+    private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUseCase,
   ) {}
 
   async importSpreadsheet(
@@ -239,5 +241,9 @@ export class SpreadsheetService {
       rowId,
       updateData,
     );
+  }
+
+  deleteSpreadsheet(spreadsheetId: string) {
+    return this.deleteSpreadsheetByIdUseCase.execute(spreadsheetId);
   }
 }

@@ -9,6 +9,8 @@ import { DeleteColumnInSpreadsheet } from './usecase/delete-column-in-spreadshee
 import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.usecase';
 import { ExportSpreadsheetUsecase } from './usecase/export-spreadsheet.usecase';
 import { Attachment } from 'src/attachment/model/attachment.entity';
+import { DeleteSpreadsheetByIdUseCase } from './usecase/delete-spreadsheet-by-id.usecase';
+import { InfraModule } from '../infra/infra.module';
 
 @Module({
   imports: [
@@ -16,6 +18,7 @@ import { Attachment } from 'src/attachment/model/attachment.entity';
       SpreadsheetMetadata,
       Attachment
     ]),
+    InfraModule,
   ],
   controllers: [SpreadsheetController],
   providers: [
@@ -25,6 +28,7 @@ import { Attachment } from 'src/attachment/model/attachment.entity';
     DeleteColumnInSpreadsheet,
     UpdateSpreadsheetRowUsecase,
     ExportSpreadsheetUsecase,
+    DeleteSpreadsheetByIdUseCase
   ],
   exports: [
     SpreadsheetService,
