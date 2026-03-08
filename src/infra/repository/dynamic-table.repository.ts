@@ -21,7 +21,22 @@ export class DynamicTableRepository {
       this.logger.log(`Table '${tableName}' was deleted successfully.`);
     } catch (error) {
       this.logger.log(`Error while deleting table '${tableName}'`);
-      throw new InternalConfigAppError(ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query))
+      throw new InternalConfigAppError(
+        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
+      );
+    }
+  }
+
+  async getTableColumns(tableName: string): Promise<string[]> {
+    const query = this.sqlBuilderService.GET_TABLE_COLUMNS(tableName);
+    try {
+      const rowResult = await this.dataSource.query(query);
+      return rowResult.length > 0 ? Object.keys(rowResult[0]) : [];
+    } catch (error) {
+      this.logger.log(`Error while fetching columns for table '${tableName}'`);
+      throw new InternalConfigAppError(
+        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
+      );
     }
   }
 }

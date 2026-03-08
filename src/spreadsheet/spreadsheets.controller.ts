@@ -1,4 +1,4 @@
-import {  Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {  Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -12,12 +12,12 @@ import { DeleteColumnDto } from './model/dto/delete-column.dto';
 import { StreamableFile } from '@nestjs/common';
 
 
-@Controller()
+@Controller('spreadsheets')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SpreadsheetController {
   constructor(private readonly spreadsheetService: SpreadsheetService) {}
 
-  @Post('import')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Post('/import')
   @Roles(Role.ADMIN, Role.USER)
   @UseInterceptors(FileInterceptor('file'))
   async importSpreadsheet(
@@ -34,8 +34,7 @@ export class SpreadsheetController {
     );
   }
 
-  @Get('spreadsheets')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Get()
   @Roles(Role.ADMIN, Role.USER)
   async getSpreadsheets(
     @Req() req: any,
@@ -51,15 +50,13 @@ export class SpreadsheetController {
     );
   }
 
-  @Delete('spreadsheets/:id')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Delete('/:spreadsheetId')
   @Roles(Role.ADMIN)
   async deleteSpreadsheet(@Param('id') id: string) {
     return this.spreadsheetService.deleteSpreadsheet(id);
   }
 
-  @Get('spreadsheets/:id')
-  @UseGuards(AuthGuard('jwt'))
+  @Get('/:spreadsheetId')
   async getSpreadsheet(
     @Param('id') id: string,
     @Req() req: any,
@@ -74,8 +71,7 @@ export class SpreadsheetController {
     );
   }
 
-  @Post('spreadsheets/:spreadsheetId/column')
-  @UseGuards(AuthGuard('jwt'))
+  @Post('/:spreadsheetId/column')
   async addColumn(
     @Param('spreadsheetId') spreadsheetId: string,
     @Body() addColumnDto: AddColumnDto,
@@ -86,8 +82,7 @@ export class SpreadsheetController {
     );
   }
 
-  @Delete('spreadsheets/:spreadsheetId/column')
-  @UseGuards(AuthGuard('jwt'))
+  @Delete('/:spreadsheetId/column')
   async deleteColumn(
     @Param('spreadsheetId') spreadsheetId: string,
     @Body() deleteColumnDto: DeleteColumnDto,
@@ -98,8 +93,7 @@ export class SpreadsheetController {
     );
   }
 
-  @Get('spreadsheets/:spreadsheetId/columns')
-  @UseGuards(AuthGuard('jwt'))
+  @Get('/:spreadsheetId/columns')
   async getSpreadsheetColumns(
     @Param('spreadsheetId') spreadsheetId: string,
     @Req() req: any,
@@ -112,8 +106,7 @@ export class SpreadsheetController {
     );
   }
 
-  @Post('spreadsheets/:spreadsheetId/:rowId')
-  @UseGuards(AuthGuard('jwt'))
+  @Post('/:spreadsheetId/:rowId')
   async updateSpreadsheetRow(
     @Param('spreadsheetId') spreadsheetId: string,
     @Param('rowId') rowId: string,
@@ -126,14 +119,15 @@ export class SpreadsheetController {
     );
   }
 
-  @Get('spreadsheets/:id/export')
-  @UseGuards(AuthGuard('jwt'))
-  async exportSpreadsheet(
-    @Param('id') id: string,
-    @Req() req: any,) {
+  @Get('/:spreadsheetId/export')
+  async exportSpreadsheet(@Param('id') id: string, @Req() req: any) {
     const { role, teamId } = req.user;
 
-    const result = await this.spreadsheetService.exportSpreadsheet(id, role, teamId);
+    const result = await this.spreadsheetService.exportSpreadsheet(
+      id,
+      role,
+      teamId,
+    );
 
     return new StreamableFile(result.buffer, {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
