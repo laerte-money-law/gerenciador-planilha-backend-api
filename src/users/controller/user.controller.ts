@@ -7,7 +7,7 @@ import { Role } from 'src/security/role/role.enum';
 import { RolesGuard } from 'src/security/role/role.guard';
 import { UpdateUserDto } from '../model/dto/update-user.dto';
 
-@Controller()
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
