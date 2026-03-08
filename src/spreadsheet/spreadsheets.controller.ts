@@ -52,7 +52,7 @@ export class SpreadsheetController {
 
   @Delete('/:spreadsheetId')
   @Roles(Role.ADMIN)
-  async deleteSpreadsheet(@Param('id') id: string) {
+  async deleteSpreadsheet(@Param('spreadsheetId') id: string) {
     return this.spreadsheetService.deleteSpreadsheet(id);
   }
 
