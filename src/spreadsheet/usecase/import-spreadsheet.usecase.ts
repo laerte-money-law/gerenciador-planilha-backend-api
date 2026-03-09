@@ -48,7 +48,8 @@ export class ImportSpreadsheetUsecase {
             ? r.map((c) => (c === null || c === undefined ? '' : String(c)))
             : [],
         );
-      } else {
+      }
+      else {
         // Parse CSV: try both ';' and ',' and choose the one that fits header length best
         const content = file.buffer.toString('utf-8');
 

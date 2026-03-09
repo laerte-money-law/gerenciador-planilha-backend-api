@@ -3,6 +3,7 @@ import { SqlBuilderService } from '../service/sql-builder.service';
 import { DataSource } from 'typeorm';
 import { InternalConfigAppError } from '../../shared/exceptions/custom/internal-config.error';
 import { ERROR_MESSAGES } from '../../shared/exceptions/error-messages.enum';
+import { ColumnDto } from '../../spreadsheet/model/dto/column.dto';
 
 @Injectable()
 export class DynamicTableRepository {
@@ -39,4 +40,32 @@ export class DynamicTableRepository {
       );
     }
   }
+
+  async createTable(tableName: string, columns: ColumnDto[]): Promise<void> {
+    const query = this.sqlBuilderService.CREATE_TABLE(tableName, columns);
+    try {
+      await this.dataSource.query(query);
+      this.logger.log(`table '${tableName}' created with success`);
+    } catch (error) {
+      this.logger.log(`Error while creating table ${tableName}`);
+      throw new InternalConfigAppError(
+        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
+      );
+    }
+  }
+
+  async insertIntoTable(tableName: string, columns: string[], rowValues: string[][]) {
+    const query = this.sqlBuilderService.INSERT_INTO(tableName, columns, rowValues);
+    try {
+      await this.dataSource.query(query);
+      this.logger.log(`insert into table '${tableName}'`);
+    } catch (error) {
+      this.logger.log(`Error while inserting into table ${tableName}`);
+      throw new InternalConfigAppError(
+        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
+      );
+    }
+
+  }
+
 }
