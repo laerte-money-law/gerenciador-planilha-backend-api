@@ -58,7 +58,7 @@ export class SpreadsheetController {
 
   @Get('/:spreadsheetId')
   async getSpreadsheet(
-    @Param('id') id: string,
+    @Param('spreadsheetId') id: string,
     @Req() req: any,
     @Query() filters: SpreadsheetFiltersDto,
   ) {

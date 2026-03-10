@@ -120,12 +120,15 @@ export class SpreadsheetService {
     const limit = filters.limit ?? 15;
     const offset = (page - 1) * limit;
 
+    console.log("SPREADSHEET ID: " + spreadsheetId);
+
     const metadata = await this.metadataRepository.findOne({
-      where:
-        role === 'ADMIN'
-          ? { id: spreadsheetId }
-          : { id: spreadsheetId, team: { id: teamId } },
+      where: {
+        id: spreadsheetId,
+      }
     });
+
+    console.log("SPREADSHEET metadata: " + metadata);
 
     if (!metadata) {
       throw new Error('Planilha não encontrada');
