@@ -12,10 +12,17 @@ import { Attachment } from 'src/attachment/model/attachment.entity';
 import { DeleteSpreadsheetByIdUseCase } from './usecase/delete-spreadsheet-by-id.usecase';
 import { InfraModule } from '../infra/infra.module';
 import { GetSpreadsheetInformationUseCase } from './usecase/get-spreadsheet-information.usecase';
+import { ImportSpreadsheetUseCaseV2 } from './usecase/import-spreadsheet.usecaseV2';
+import { CreateSpreadsheetService } from './services/create-spreadsheet.service';
+import { Client } from '../client/model/client.entity';
+import { Team } from '../team/model/team.entity';
+import { ImportSpreadsheetFactory } from './infra/spreadsheet-import.factory';
+import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
+import { MetadataService } from './services/metadata.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SpreadsheetMetadata, Attachment]),
+    TypeOrmModule.forFeature([SpreadsheetMetadata, Attachment, Client, Team]),
     InfraModule,
   ],
   controllers: [SpreadsheetController],
@@ -28,6 +35,11 @@ import { GetSpreadsheetInformationUseCase } from './usecase/get-spreadsheet-info
     ExportSpreadsheetUsecase,
     DeleteSpreadsheetByIdUseCase,
     GetSpreadsheetInformationUseCase,
+    ImportSpreadsheetUseCaseV2,
+    ImportSpreadsheetFactory,
+    CreateSpreadsheetService,
+    GetSpreadsheetByIdUseCase,
+    MetadataService
   ],
   exports: [SpreadsheetService],
 })

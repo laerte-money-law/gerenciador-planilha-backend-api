@@ -1,7 +1,7 @@
 import { IsNumber, IsString } from 'class-validator';
 
 export class CreateSpreadsheetDto {
-  teamId: number;
+  teamId: number = 1;
   @IsString()
   service: string;
   @IsString()     

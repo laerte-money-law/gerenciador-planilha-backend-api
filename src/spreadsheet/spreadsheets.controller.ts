@@ -21,16 +21,16 @@ export class SpreadsheetController {
   @Roles(Role.ADMIN, Role.USER)
   @UseInterceptors(FileInterceptor('file'))
   async importSpreadsheet(
+    @Req() req: any,
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
   ) {
-    return this.spreadsheetService.importSpreadsheet(
+    return this.spreadsheetService.importSpreadsheetV2(
+      req.user,
       file,
-      1,
-      1,
+      body.teamId,
       body.clientId,
       body.service,
-      body.status,
     );
   }
 
@@ -62,11 +62,8 @@ export class SpreadsheetController {
     @Req() req: any,
     @Query() filters: SpreadsheetFiltersDto,
   ) {
-    const { role, teamId } = req.user;
-    return this.spreadsheetService.getSpreadsheetByIdPaginated(
+    return this.spreadsheetService.getSpreadsheetByIdPaginatedV2(
       id,
-      role,
-      teamId,
       filters,
     );
   }
