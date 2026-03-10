@@ -26,6 +26,8 @@ import { ClientOutputDto } from '../client/model/dto/client.ouput.dto';
 import { ImportSpreadsheetUseCaseV2 } from './usecase/import-spreadsheet.usecaseV2';
 import { User } from '../users/model/user.entity';
 
+import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
+
 @Injectable()
 export class SpreadsheetService {
   constructor(
@@ -40,6 +42,7 @@ export class SpreadsheetService {
     private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUseCase,
     private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
     private readonly importSpreadsheetUseCaseV2: ImportSpreadsheetUseCaseV2,
+    private readonly getSpreadsheetByIdUseCase: GetSpreadsheetByIdUseCase,
   ) {}
 
   async importSpreadsheet(
@@ -184,6 +187,13 @@ export class SpreadsheetService {
       limit,
       total,
     };
+  }
+
+  async getSpreadsheetByIdPaginatedV2(
+    spreadsheetId: string,
+    filters: SpreadsheetFiltersDto,
+  ): Promise<SpreadsheetViewResponseDto> {
+    return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters);
   }
 
   async exportSpreadsheet(spreadsheetId: string, role: string, teamId: number) {

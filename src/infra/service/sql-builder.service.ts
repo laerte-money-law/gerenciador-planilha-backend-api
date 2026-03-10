@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ColumnDto } from '../../spreadsheet/model/dto/column.dto';
+import { ROW_STATUS } from '../../spreadsheet/model/enum/row-status.enum';
+import { GetPaginatedData } from '../../spreadsheet/model/dto/get-paginated-data';
 
 @Injectable()
 export class SqlBuilderService {
@@ -23,8 +25,56 @@ export class SqlBuilderService {
 
   INSERT_INTO(tableName: string, columns: string[], values: string[][]) {
     const columnsSqlQuery = columns.join(', ');
-    const insertRows = this.buildSqlValueTuples(values, columns.length).join(', ');
+    const insertRows = this.buildSqlValueTuples(values, columns.length).join(
+      ', ',
+    );
     return `INSERT INTO dbo.[${tableName}] (${columnsSqlQuery}) VALUES ${insertRows}`;
+  }
+
+  GET_PAGINATED_DATA(
+    tableName: string,
+    getPaginatedDataDTO: GetPaginatedData,
+  ): string {
+    let query = `SELECT * FROM dbo.[${tableName}] `;
+
+    const { limit, page } = getPaginatedDataDTO;
+    const finalOffset = (page - 1) * limit;
+
+    query += this.buildWhereCondition(getPaginatedDataDTO);
+
+    query += ` ORDER BY ML_ID ASC`;
+    query += ` OFFSET ${finalOffset} ROWS FETCH NEXT ${limit} ROWS ONLY;`;
+
+    return query;
+  }
+
+  private buildWhereCondition(getDataDTO: GetPaginatedData) {
+    const {status, notStatus, search, } = getDataDTO
+    const conditions: string[] = [];
+
+    if (status) {
+      conditions.push(`ML_STATUS = '${status}'`);
+    }
+
+    if (notStatus) {
+      conditions.push(`ML_STATUS <> '${notStatus}'`);
+    }
+
+    if (search) {
+      // Logic for search can be added here
+      // conditions.push(`processo LIKE '%${search}%'`);
+    }
+
+    if (conditions.length > 0) {
+      return ` WHERE ${conditions.join(' AND ')}`;
+    }
+    return "";
+  }
+
+  GET_COUNT(tableName: string, getDataDTO: GetPaginatedData): string {
+    let query = `SELECT COUNT(1) as total FROM dbo.[${tableName}] `;
+    query += this.buildWhereCondition(getDataDTO);
+    return query;
   }
 
   private buildSqlValueTuples(

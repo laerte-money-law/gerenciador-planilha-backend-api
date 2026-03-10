@@ -59,15 +59,12 @@ export class SpreadsheetController {
 
   @Get('/:spreadsheetId')
   async getSpreadsheet(
-    @Param('id') id: string,
+    @Param('spreadsheetId') id: string,
     @Req() req: any,
     @Query() filters: SpreadsheetFiltersDto,
   ) {
-    const { role, teamId } = req.user;
-    return this.spreadsheetService.getSpreadsheetByIdPaginated(
+    return this.spreadsheetService.getSpreadsheetByIdPaginatedV2(
       id,
-      role,
-      teamId,
       filters,
     );
   }
