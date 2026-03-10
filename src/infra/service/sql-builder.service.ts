@@ -15,7 +15,7 @@ export class SqlBuilderService {
     // Todo: validate column name duplication? add normalization
 
     const columnDefinitions = columns
-      .map((column) => `[${column.name}] ${column.type}`)
+      .map((column) => column.getColumnDefinitionSQL())
       .join(', ');
 
     return `CREATE TABLE dbo.[${tableName}] (${columnDefinitions})`;
@@ -23,16 +23,26 @@ export class SqlBuilderService {
 
   INSERT_INTO(tableName: string, columns: string[], values: string[][]) {
     const columnsSqlQuery = columns.join(', ');
-    const insertRows = this.buildSqlValueTuples(values).join(', ');
+    const insertRows = this.buildSqlValueTuples(values, columns.length).join(', ');
     return `INSERT INTO dbo.[${tableName}] (${columnsSqlQuery}) VALUES ${insertRows}`;
   }
 
-  private buildSqlValueTuples(valueRows: string[][]): string[] {
-
+  private buildSqlValueTuples(
+    valueRows: string[][],
+    columnCount: number,
+  ): string[] {
     return valueRows.map((row) => {
+      const paddedRow = [...row];
 
-      const values = row.map((cell) => {
-        const normalized = String(cell ?? '').replace(/'/g, "''");
+      while (paddedRow.length < columnCount) {
+        paddedRow.push('');
+      }
+
+      const values = paddedRow.map((cell) => {
+        const normalized = String(cell ?? '')
+          .trim()
+          .replace(/'/g, "''");
+
         return `'${normalized}'`;
       });
 

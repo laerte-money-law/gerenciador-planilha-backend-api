@@ -47,6 +47,7 @@ export class DynamicTableRepository {
       await this.dataSource.query(query);
       this.logger.log(`table '${tableName}' created with success`);
     } catch (error) {
+      this.logger.log(error);
       this.logger.log(`Error while creating table ${tableName}`);
       throw new InternalConfigAppError(
         ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
@@ -60,6 +61,7 @@ export class DynamicTableRepository {
       await this.dataSource.query(query);
       this.logger.log(`insert into table '${tableName}'`);
     } catch (error) {
+      this.logger.error(error);
       this.logger.log(`Error while inserting into table ${tableName}`);
       throw new InternalConfigAppError(
         ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),

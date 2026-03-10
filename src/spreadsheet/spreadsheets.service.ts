@@ -12,7 +12,10 @@ import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadshe
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { AddColumnResponseDto } from './model/dto/add-column.response.dto';
 import { DeleteColumnInSpreadsheet } from './usecase/delete-column-in-spreadsheet';
-import { DeleteColumnDto, DeleteColumnResponseDto } from './model/dto/delete-column.dto';
+import {
+  DeleteColumnDto,
+  DeleteColumnResponseDto,
+} from './model/dto/delete-column.dto';
 import { GetSpreadsheetColumnsResponseDto } from './model/dto/get-spreadsheet-columns.dto';
 import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.usecase';
 import { UpdateSpreadsheetRowResponseDto } from './model/dto/update-spreadsheet-row.dto';
@@ -20,6 +23,8 @@ import { ExportSpreadsheetUsecase } from './usecase/export-spreadsheet.usecase';
 import { DeleteSpreadsheetByIdUseCase } from './usecase/delete-spreadsheet-by-id.usecase';
 import { GetSpreadsheetInformationUseCase } from './usecase/get-spreadsheet-information.usecase';
 import { ClientOutputDto } from '../client/model/dto/client.ouput.dto';
+import { ImportSpreadsheetUseCaseV2 } from './usecase/import-spreadsheet.usecaseV2';
+import { User } from '../users/model/user.entity';
 
 @Injectable()
 export class SpreadsheetService {
@@ -34,6 +39,7 @@ export class SpreadsheetService {
     private readonly exportSpreadsheetUsecase: ExportSpreadsheetUsecase,
     private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUseCase,
     private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
+    private readonly importSpreadsheetUseCaseV2: ImportSpreadsheetUseCaseV2,
   ) {}
 
   async importSpreadsheet(
@@ -54,6 +60,21 @@ export class SpreadsheetService {
     );
   }
 
+  async importSpreadsheetV2(
+    user: User,
+    file: Express.Multer.File,
+    teamId: number,
+    clientId: number,
+    service: string,
+  ) {
+    return this.importSpreadsheetUseCaseV2.execute(user, {
+      file,
+      teamId,
+      clientId,
+      service,
+    });
+  }
+
   async getSpreadsheets(
     role: Role,
     teamId: number,
@@ -69,7 +90,7 @@ export class SpreadsheetService {
       take: limit,
       relations: {
         team: true,
-        client: true
+        client: true,
       },
     });
 
@@ -165,12 +186,12 @@ export class SpreadsheetService {
     };
   }
 
-  async exportSpreadsheet(
-    spreadsheetId: string,
-    role: string,
-    teamId: number
-  ){
-    return await this.exportSpreadsheetUsecase.execute(spreadsheetId,role,teamId);
+  async exportSpreadsheet(spreadsheetId: string, role: string, teamId: number) {
+    return await this.exportSpreadsheetUsecase.execute(
+      spreadsheetId,
+      role,
+      teamId,
+    );
   }
 
   async addColumnToSpreadsheet(

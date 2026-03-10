@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { extname } from 'path';
 import XLSX from 'xlsx';
 import { parse } from 'csv-parse/sync';
-import { RowStatus } from '../model/enum/row-status.enum';
+import { ROW_STATUS } from '../model/enum/row-status.enum';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
@@ -203,7 +203,7 @@ export class ImportSpreadsheetUsecase {
         }
 
         // Adicionar valores das colunas extras
-        values.push(`'${RowStatus.IN_PROGRESS}'`); // status
+        values.push(`'${ROW_STATUS.IN_PROGRESS}'`); // status
         values.push(`${userId}`); // created_by
         values.push(`${userId}`); // last_updated_by
         values.push(`${teamId}`); // team_id

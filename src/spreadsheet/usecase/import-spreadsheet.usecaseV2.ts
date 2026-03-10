@@ -13,6 +13,7 @@ import { ImportSpreadsheetFactory } from '../infra/spreadsheet-import.factory';
 import { Logger } from '@nestjs/common';
 import { COLUMN_TYPE, ColumnDto } from '../model/dto/column.dto';
 import { ROW_STATUS } from '../model/enum/row-status.enum';
+import { CreateSpreadsheetService } from '../services/create-spreadsheet.service';
 
 export class ImportSpreadsheetUseCaseV2 {
   private readonly logger = new Logger(ImportSpreadsheetUseCaseV2.name);
@@ -24,37 +25,41 @@ export class ImportSpreadsheetUseCaseV2 {
     private readonly clientRepository: Repository<Client>,
     @InjectRepository(Team)
     private readonly teamRepository: Repository<Team>,
-    private readonly importSpreadsheetFactory: ImportSpreadsheetFactory,
-    private readonly dynamicTableRepository: DynamicTableRepository,
+    private readonly createSpreadsheetService: CreateSpreadsheetService,
   ) {}
 
-  public async execute(user: User, importSpreadsheetDto: ImportSpreadsheetDto) {
+  public async execute(user: any, importSpreadsheetDto: ImportSpreadsheetDto) {
     this.logger.log(
-      `Iniciando importação de planilha para o usuário ${user.id} com os dados: ${JSON.stringify(importSpreadsheetDto)}`,
+      `Iniciando importação de planilha para o usuário ${user.userId}`,
     );
 
     const file = importSpreadsheetDto.file;
     const tableName = `spreadsheet_${Date.now()}`;
 
-    await this.createInternalSpreadsheetTable(tableName, file);
+    await this.createSpreadsheetService.execute(tableName, file);
 
     //todo: salvar metadados na planilha
     const client = await this.getClientOrThrow(importSpreadsheetDto.clientId);
     const team = await this.getTeamOrThrow(importSpreadsheetDto.teamId);
 
-    const metadata: SpreadsheetMetadata = {
-      id: 1, //remove this
+    const metadata = this.metadataRepository.create({
       tableName,
       originalFileName: file.originalname,
       team,
       client,
-      createdBy: user.id,
+      createdBy: user.userId,
       createdAt: new Date(),
       service: importSpreadsheetDto.service,
-      status: SpreadsheetStatusEnum.IN_PROGRESS,
-    };
+      status: SpreadsheetStatusEnum.IN_PROGRESS
+    });
 
-    const savedMetadata = await this.metadataRepository.save(metadata);
+    await this.metadataRepository.save(metadata);
+
+    return {
+      id: metadata.id,
+      name: metadata.originalFileName,
+      rowsImported: 999,
+    };
   }
 
   private async getClientOrThrow(clientId: number) {
@@ -79,32 +84,5 @@ export class ImportSpreadsheetUseCaseV2 {
     return team;
   }
 
-  private async createInternalSpreadsheetTable(
-    tableName: string,
-    file: Express.Multer.File,
-  ) {
-    //todo: criar tabela dinâmica com base no arquivo recebido e preencher os dados
-    const importer = this.importSpreadsheetFactory.getImporter(file);
 
-    //todo: validar e adicionar MoneyLawGEP ML_ID, ML_STATUS?
-    const columnsDtos = importer.getHeaders();
-
-    const ML_PRIMARY_KEY_COLUMN = new ColumnDto('ML_ID', COLUMN_TYPE.PRIMARY_KEY);
-    const ML_ROW_STATUS_COLUMN = new ColumnDto('ML_STATUS', COLUMN_TYPE.STATUS, ROW_STATUS.IMPORTED);
-    const ML_ROW_LAWYER_ASSIGNED = new ColumnDto('ML_USER_ATRIBUIDO', COLUMN_TYPE.STRING, '');
-
-    columnsDtos.push(ML_PRIMARY_KEY_COLUMN, ML_ROW_STATUS_COLUMN, ML_ROW_LAWYER_ASSIGNED);
-
-    await this.dynamicTableRepository.createTable(tableName, columnsDtos);
-
-    //todo: validar e adicionar linhas na tabela criada
-    let values = importer.getRows();
-    const columns = columnsDtos.map((columnDto) => columnDto.name);
-
-    await this.dynamicTableRepository.insertIntoTable(
-      tableName,
-      columns,
-      values,
-    );
-  }
 }

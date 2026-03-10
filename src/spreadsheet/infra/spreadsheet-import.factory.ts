@@ -14,7 +14,8 @@ export class ImportSpreadsheetFactory {
       .slice(originalName.lastIndexOf('.'))
       .toLowerCase();
 
-    if (extension === 'xlsx') {
+    console.log(`Import Spreadsheet: ${extension}`);
+    if (extension === '.xlsx') {
       return new XlsxImportSpreadsheetAdapter(file);
     }
 
