@@ -1,4 +1,4 @@
 export enum SpreadsheetStatusEnum{
-    IN_PROGRESS = 'ANDAMENTO',
+    IN_PROGRESS = 'EM_ANALISE',
     VALIDATED = 'VALIDADO',
 }

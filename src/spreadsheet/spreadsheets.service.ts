@@ -136,16 +136,16 @@ export class SpreadsheetService {
     const baseQb = this.dataSource.createQueryBuilder().from(tableName, 't');
 
     if (filters.status) {
-      baseQb.andWhere('t.status_ml = :status', {
+      baseQb.andWhere('t.ML_STATUS = :status', {
         status: filters.status,
       });
     }
 
-    if (filters.search) {
+    /*if (filters.search) {
       baseQb.andWhere('t.processo LIKE :search', {
         search: `%${filters.search}%`,
       });
-    }
+    }*/
 
     const countResult = await baseQb
       .clone()
@@ -157,7 +157,7 @@ export class SpreadsheetService {
     const rows = await baseQb
       .clone()
       .select('*')
-      .orderBy('t.id_ml', 'ASC')
+      .orderBy('t.ML_ID', 'ASC')
       .offset(offset)
       .limit(limit)
       .getRawMany();
