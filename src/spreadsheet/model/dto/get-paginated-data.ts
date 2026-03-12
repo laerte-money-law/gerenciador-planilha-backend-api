@@ -9,14 +9,20 @@ export class GetPaginatedData {
   search?: string;
 
   constructor(filters: SpreadsheetFiltersDto) {
-    this.page = filters.page;
-    this.search = filters.search;
-    this.limit = filters.limit;
+  this.page = filters.page;
+  this.limit = filters.limit;
+  this.search = filters.search;
 
-    if (filters.status != ROW_STATUS.VALIDATED) {
-      this.notStatus = ROW_STATUS.VALIDATED;
-    } else {
-      this.status = filters.status;
-    }
+  if (!filters.status) {
+    this.notStatus = ROW_STATUS.VALIDADO;
+    return;
   }
+
+  if (filters.status === ROW_STATUS.VALIDADO) {
+    this.status = ROW_STATUS.VALIDADO;
+    return;
+  }
+
+  this.status = filters.status;
+}
 }
