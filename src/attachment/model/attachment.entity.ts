@@ -21,6 +21,9 @@ export class Attachment {
   @Column()
   contentType: string;
 
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  fileType: string;
+
   @Column('bigint')
   size: number;
 

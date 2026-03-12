@@ -140,10 +140,15 @@ export class SpreadsheetService {
     const tableName = metadata.tableName;
 
     const baseQb = this.dataSource.createQueryBuilder().from(tableName, 't');
+    console.log('aqui')
 
     if (filters.status) {
       baseQb.andWhere('t.ML_STATUS = :status', {
         status: filters.status,
+      });
+    } else {
+      baseQb.andWhere('t.status_ml != :status', {
+        status: 'VALIDADO',
       });
     }
 
@@ -196,9 +201,9 @@ export class SpreadsheetService {
     spreadsheetId: string,
     filters: SpreadsheetFiltersDto,
   ): Promise<SpreadsheetViewResponseDto> {
+
     return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters);
   }
-
   async exportSpreadsheet(spreadsheetId: string, role: string, teamId: number) {
     return await this.exportSpreadsheetUsecase.execute(
       spreadsheetId,

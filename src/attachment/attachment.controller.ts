@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AttachmentService } from './attachment.service';
 import { AuthGuard } from '@nestjs/passport';
+import { AttachmentUploadDto } from './model/dto/upload-attachment.dto';
 @Controller('attachments')
 export class AttachmentsController {
   constructor(private readonly service: AttachmentService) {}
@@ -29,15 +30,14 @@ export class AttachmentsController {
   )
   async upload(
     @UploadedFile() file: Express.Multer.File,
-    @Body('spreadsheetMetadataId') spreadsheetMetadataId: string,
-    @Body('rowId') rowId: number,
-    @Body('description') description?: string,
+    @Body() dto: AttachmentUploadDto,
   ) {
     return this.service.upload(
       file,
-      spreadsheetMetadataId,
-      Number(rowId),
-      description,
+      dto.spreadsheetMetadataId,
+      Number(dto.rowId),
+      dto.description,
+      dto.fileType
     );
   }
 

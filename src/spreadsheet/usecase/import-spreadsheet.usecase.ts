@@ -203,7 +203,7 @@ export class ImportSpreadsheetUsecase {
         }
 
         // Adicionar valores das colunas extras
-        values.push(`'${ROW_STATUS.IN_PROGRESS}'`); // status
+        values.push(`''`); // status
         values.push(`${userId}`); // created_by
         values.push(`${userId}`); // last_updated_by
         values.push(`${teamId}`); // team_id
