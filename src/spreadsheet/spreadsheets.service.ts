@@ -26,6 +26,8 @@ import { ClientOutputDto } from '../client/model/dto/client.ouput.dto';
 import { ImportSpreadsheetUseCaseV2 } from './usecase/import-spreadsheet.usecaseV2';
 import { User } from '../users/model/user.entity';
 
+import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
+
 @Injectable()
 export class SpreadsheetService {
   constructor(
@@ -40,6 +42,7 @@ export class SpreadsheetService {
     private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUseCase,
     private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
     private readonly importSpreadsheetUseCaseV2: ImportSpreadsheetUseCaseV2,
+    private readonly getSpreadsheetByIdUseCase: GetSpreadsheetByIdUseCase,
   ) {}
 
   async importSpreadsheet(
@@ -139,7 +142,7 @@ export class SpreadsheetService {
     const baseQb = this.dataSource.createQueryBuilder().from(tableName, 't');
 
     if (filters.status) {
-      baseQb.andWhere('t.status_ml = :status', {
+      baseQb.andWhere('t.ML_STATUS = :status', {
         status: filters.status,
       });
     } else {
@@ -148,11 +151,11 @@ export class SpreadsheetService {
       });
     }
 
-    if (filters.search) {
+    /*if (filters.search) {
       baseQb.andWhere('t.processo LIKE :search', {
         search: `%${filters.search}%`,
       });
-    }
+    }*/
 
     const countResult = await baseQb
       .clone()
@@ -164,7 +167,7 @@ export class SpreadsheetService {
     const rows = await baseQb
       .clone()
       .select('*')
-      .orderBy('t.id_ml', 'ASC')
+      .orderBy('t.ML_ID', 'ASC')
       .offset(offset)
       .limit(limit)
       .getRawMany();
@@ -191,6 +194,13 @@ export class SpreadsheetService {
       limit,
       total,
     };
+  }
+
+  async getSpreadsheetByIdPaginatedV2(
+    spreadsheetId: string,
+    filters: SpreadsheetFiltersDto,
+  ): Promise<SpreadsheetViewResponseDto> {
+    return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters);
   }
 
   async exportSpreadsheet(spreadsheetId: string, role: string, teamId: number) {

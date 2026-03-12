@@ -4,6 +4,8 @@ import { DataSource } from 'typeorm';
 import { InternalConfigAppError } from '../../shared/exceptions/custom/internal-config.error';
 import { ERROR_MESSAGES } from '../../shared/exceptions/error-messages.enum';
 import { ColumnDto } from '../../spreadsheet/model/dto/column.dto';
+import { ROW_STATUS } from '../../spreadsheet/model/enum/row-status.enum';
+import { GetPaginatedData } from '../../spreadsheet/model/dto/get-paginated-data';
 
 @Injectable()
 export class DynamicTableRepository {
@@ -55,8 +57,16 @@ export class DynamicTableRepository {
     }
   }
 
-  async insertIntoTable(tableName: string, columns: string[], rowValues: string[][]) {
-    const query = this.sqlBuilderService.INSERT_INTO(tableName, columns, rowValues);
+  async insertIntoTable(
+    tableName: string,
+    columns: string[],
+    rowValues: string[][],
+  ) {
+    const query = this.sqlBuilderService.INSERT_INTO(
+      tableName,
+      columns,
+      rowValues,
+    );
     try {
       await this.dataSource.query(query);
       this.logger.log(`insert into table '${tableName}'`);
@@ -67,7 +77,44 @@ export class DynamicTableRepository {
         ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
       );
     }
-
   }
 
+  async getDataTable(
+    tableName: string,
+    getPaginatedDataDTO: GetPaginatedData,
+  ): Promise<any[]> {
+
+    const query = this.sqlBuilderService.GET_PAGINATED_DATA(
+      tableName,
+      getPaginatedDataDTO,
+    );
+
+    try {
+      return await this.dataSource.query(query);
+    } catch (error) {
+      this.logger.error(
+        `Error while fetching paginated data from ${tableName}`,
+      );
+      throw new InternalConfigAppError(
+        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
+      );
+    }
+  }
+
+  async getCount(
+    tableName: string,
+    getDataDTO: GetPaginatedData
+  ): Promise<number> {
+    const query = this.sqlBuilderService.GET_COUNT(tableName, getDataDTO);
+
+    try {
+      const result = await this.dataSource.query(query);
+      return Number(result[0]?.total ?? 0);
+    } catch (error) {
+      this.logger.error(`Error while fetching count from ${tableName}`);
+      throw new InternalConfigAppError(
+        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
+      );
+    }
+  }
 }

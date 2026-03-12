@@ -17,6 +17,8 @@ import { CreateSpreadsheetService } from './services/create-spreadsheet.service'
 import { Client } from '../client/model/client.entity';
 import { Team } from '../team/model/team.entity';
 import { ImportSpreadsheetFactory } from './infra/spreadsheet-import.factory';
+import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
+import { MetadataService } from './services/metadata.service';
 
 @Module({
   imports: [
@@ -35,8 +37,9 @@ import { ImportSpreadsheetFactory } from './infra/spreadsheet-import.factory';
     GetSpreadsheetInformationUseCase,
     ImportSpreadsheetUseCaseV2,
     ImportSpreadsheetFactory,
-    CreateSpreadsheetService
-
+    CreateSpreadsheetService,
+    GetSpreadsheetByIdUseCase,
+    MetadataService
   ],
   exports: [SpreadsheetService],
 })
