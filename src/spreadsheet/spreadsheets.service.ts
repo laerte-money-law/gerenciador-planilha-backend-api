@@ -201,7 +201,6 @@ export class SpreadsheetService {
     spreadsheetId: string,
     filters: SpreadsheetFiltersDto,
   ): Promise<SpreadsheetViewResponseDto> {
-        console.log("paginado")
 
     return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters);
   }
