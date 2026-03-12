@@ -23,11 +23,14 @@ export class SpreadsheetController {
   async importSpreadsheet(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
+    @Req() req: any,
   ) {
+
+
     return this.spreadsheetService.importSpreadsheet(
       file,
-      1,
-      1,
+      req.user.userId,
+      body.teamId,
       body.clientId,
       body.service,
       body.status,
