@@ -33,6 +33,7 @@ export class AttachmentService {
     spreadsheetMetadataId: string,
     rowId: number,
     description?: string,
+    fileType?: string
   ) {
     this.validateFile(file);
 
@@ -44,6 +45,7 @@ export class AttachmentService {
       data: file.buffer,
       spreadsheetMetadataId,
       rowId,
+      fileType
     });
 
     const saved = await this.repository.save(attachment);
@@ -54,7 +56,7 @@ export class AttachmentService {
   async listByRow(spreadsheetMetadataId: string, rowId: number) {
     const attachments = await this.repository.find({
       where: { spreadsheetMetadataId, rowId },
-      select: ['id', 'originalName', 'description', 'createdAt'],
+      select: ['id', 'originalName', 'description', 'createdAt', 'fileType'],
     });
 
     const baseUrl = this.configService.get<string>('BACKEND_HOST');
@@ -65,6 +67,7 @@ export class AttachmentService {
       description: a.description,
       url: `${baseUrl}/api/attachments/${a.id}`,
       createdAt: a.createdAt,
+      fileType: a.fileType,
     }));
   }
 
