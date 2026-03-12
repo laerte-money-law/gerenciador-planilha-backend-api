@@ -1,4 +1,4 @@
-import {  Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -15,7 +15,7 @@ import { StreamableFile } from '@nestjs/common';
 @Controller('spreadsheets')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SpreadsheetController {
-  constructor(private readonly spreadsheetService: SpreadsheetService) {}
+  constructor(private readonly spreadsheetService: SpreadsheetService) { }
 
   @Post('/import')
   @Roles(Role.ADMIN, Role.USER)
@@ -24,6 +24,7 @@ export class SpreadsheetController {
     @Req() req: any,
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
+    @Req() req: any,
   ) {
     return this.spreadsheetService.importSpreadsheetV2(
       req.user,

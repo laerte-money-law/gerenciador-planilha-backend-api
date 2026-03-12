@@ -26,7 +26,7 @@ export class ImportSpreadsheetUseCaseV2 {
     @InjectRepository(Team)
     private readonly teamRepository: Repository<Team>,
     private readonly createSpreadsheetService: CreateSpreadsheetService,
-  ) {}
+  ) { }
 
   public async execute(user: any, importSpreadsheetDto: ImportSpreadsheetDto) {
     this.logger.log(
