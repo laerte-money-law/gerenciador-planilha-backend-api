@@ -1,6 +1,5 @@
 import { ImportSpreadsheetFactory } from '../infra/spreadsheet-import.factory';
 import { COLUMN_TYPE, ColumnDto } from '../model/dto/column.dto';
-import { ROW_STATUS } from '../model/enum/row-status.enum';
 import { DynamicTableRepository } from '../../infra/repository/dynamic-table.repository';
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -15,7 +14,7 @@ export class CreateSpreadsheetService {
 
   private readonly MONEY_LAW_GEP_DEFAULT_COLUMNS = [
     new ColumnDto('ML_ID', COLUMN_TYPE.PRIMARY_KEY),
-    new ColumnDto('ML_STATUS', COLUMN_TYPE.STATUS, ROW_STATUS.IMPORTED),
+    new ColumnDto('ML_STATUS', COLUMN_TYPE.STATUS, ""),
     new ColumnDto('ML_USER_ATRIBUIDO', COLUMN_TYPE.STRING, ''),
   ];
 

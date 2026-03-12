@@ -145,6 +145,10 @@ export class SpreadsheetService {
       baseQb.andWhere('t.ML_STATUS = :status', {
         status: filters.status,
       });
+    } else {
+      baseQb.andWhere('t.status_ml != :status', {
+        status: 'VALIDADO',
+      });
     }
 
     /*if (filters.search) {

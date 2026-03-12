@@ -1,7 +1,8 @@
 export enum ROW_STATUS {
-  IMPORTED = 'IMPORTADO', // Linha recém importada da planilha
-  IN_PROGRESS = 'EM_ANALISE', // Advogado trabalhando
-  VALIDATED = 'VALIDADO', // Caso revisado / confirmado
-  COMPLETED = 'CONCLUIDO', // Trabalho finalizado
-  REJECTED = 'DESCARTADO', // Caso inválido / não será usado
+  AG_VALIDACAO = 'AG VALIDAÇÃO',
+  ANALISE_CONCLUIDA = 'ANÁLISE CONCLUÍDA', 
+  EM_ANALISE = 'EM ANÁLISE', 
+  NAO_LOCALIZADO = 'NÃO LOCALIZADO', 
+  SEM_ACESSO_BANCARIO = 'SEM ACESSO BANCÁRIO',
+  VALIDADO = 'VALIDADO',
 }
