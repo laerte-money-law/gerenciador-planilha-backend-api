@@ -10,7 +10,7 @@ export class SqlBuilderService {
   }
 
   GET_TABLE_COLUMNS(tableName: string): string {
-    return `SELECT * FROM dbo.${tableName} LIMIT 1;`;
+    return `SELECT TOP 1 * FROM dbo.[${tableName}];`;
   }
 
   CREATE_TABLE(tableName: string, columns: ColumnDto[]): string {
@@ -49,7 +49,7 @@ export class SqlBuilderService {
   }
 
   private buildWhereCondition(getDataDTO: GetPaginatedData) {
-    const {status, notStatus, search, } = getDataDTO
+    const { status, notStatus, search, } = getDataDTO
     const conditions: string[] = [];
 
     if (status) {

@@ -28,6 +28,7 @@ export class GetSpreadsheetByIdUseCase {
       this.dynamicTableRepository.getCount(tableName, getDataDTO),
     ]);
 
+    //todo: eh necessario fazer a remocao das colunas default da MONEYLAW
     const columns =
       rows.length > 0
         ? Object.keys(rows[0]).filter(
