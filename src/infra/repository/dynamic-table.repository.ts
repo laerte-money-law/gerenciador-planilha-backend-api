@@ -4,7 +4,6 @@ import { DataSource } from 'typeorm';
 import { InternalConfigAppError } from '../../shared/exceptions/custom/internal-config.error';
 import { ERROR_MESSAGES } from '../../shared/exceptions/error-messages.enum';
 import { ColumnDto } from '../../spreadsheet/model/dto/column.dto';
-import { ROW_STATUS } from '../../spreadsheet/model/enum/row-status.enum';
 import { GetPaginatedData } from '../../spreadsheet/model/dto/get-paginated-data';
 
 @Injectable()
@@ -14,47 +13,27 @@ export class DynamicTableRepository {
   constructor(
     private readonly sqlBuilderService: SqlBuilderService,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async deleteTable(tableName: string): Promise<void> {
     const query = this.sqlBuilderService.DELETE_TABLE(tableName);
-
-    try {
-      await this.dataSource.query(query);
-      this.logger.log(`Table '${tableName}' was deleted successfully.`);
-    } catch (error) {
-      this.logger.log(`Error while deleting table '${tableName}'`);
-      throw new InternalConfigAppError(
-        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
-      );
-    }
+    await this.executeQuery(query, `Error while deleting table '${tableName}'`);
+    this.logger.log(`Table '${tableName}' was deleted successfully.`);
   }
 
   async getTableColumns(tableName: string): Promise<string[]> {
     const query = this.sqlBuilderService.GET_TABLE_COLUMNS(tableName);
-    try {
-      const rowResult = await this.dataSource.query(query);
-      return rowResult.length > 0 ? Object.keys(rowResult[0]) : [];
-    } catch (error) {
-      this.logger.log(`Error while fetching columns for table '${tableName}'`);
-      throw new InternalConfigAppError(
-        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
-      );
-    }
+    const rowResult = await this.executeQuery<any[]>(
+      query,
+      `Error while fetching columns for table '${tableName}'`,
+    );
+    return rowResult.length > 0 ? Object.keys(rowResult[0]) : [];
   }
 
   async createTable(tableName: string, columns: ColumnDto[]): Promise<void> {
     const query = this.sqlBuilderService.CREATE_TABLE(tableName, columns);
-    try {
-      await this.dataSource.query(query);
-      this.logger.log(`table '${tableName}' created with success`);
-    } catch (error) {
-      this.logger.log(error);
-      this.logger.log(`Error while creating table ${tableName}`);
-      throw new InternalConfigAppError(
-        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
-      );
-    }
+    await this.executeQuery(query, `Error while creating table ${tableName}`);
+    this.logger.log(`table '${tableName}' created with success`);
   }
 
   async insertIntoTable(
@@ -67,51 +46,43 @@ export class DynamicTableRepository {
       columns,
       rowValues,
     );
-    try {
-      await this.dataSource.query(query);
-      this.logger.log(`insert into table '${tableName}'`);
-    } catch (error) {
-      this.logger.error(error);
-      this.logger.log(`Error while inserting into table ${tableName}`);
-      throw new InternalConfigAppError(
-        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
-      );
-    }
+    await this.executeQuery(query, `Error while inserting into table ${tableName}`);
+    this.logger.log(`insert into table '${tableName}'`);
   }
 
   async getDataTable(
     tableName: string,
     getPaginatedDataDTO: GetPaginatedData,
   ): Promise<any[]> {
-
     const query = this.sqlBuilderService.GET_PAGINATED_DATA(
       tableName,
       getPaginatedDataDTO,
     );
 
-    try {
-      return await this.dataSource.query(query);
-    } catch (error) {
-      this.logger.error(
-        `Error while fetching paginated data from ${tableName}`,
-      );
-      throw new InternalConfigAppError(
-        ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
-      );
-    }
+    return this.executeQuery<any[]>(
+      query,
+      `Error while fetching paginated data from ${tableName}`,
+    );
   }
 
   async getCount(
     tableName: string,
-    getDataDTO: GetPaginatedData
+    getDataDTO: GetPaginatedData,
   ): Promise<number> {
     const query = this.sqlBuilderService.GET_COUNT(tableName, getDataDTO);
+    const result = await this.executeQuery<any[]>(
+      query,
+      `Error while fetching count from ${tableName}`,
+    );
+    return Number(result[0]?.total ?? 0);
+  }
 
+  private async executeQuery<T>(query: string, logMessage: string): Promise<T> {
     try {
-      const result = await this.dataSource.query(query);
-      return Number(result[0]?.total ?? 0);
+      return await this.dataSource.query(query);
     } catch (error) {
-      this.logger.error(`Error while fetching count from ${tableName}`);
+      this.logger.error(error);
+      this.logger.error(`${logMessage} - Query: ${query}`, error.stack);
       throw new InternalConfigAppError(
         ERROR_MESSAGES.ERROR_EXECUTING_QUERY(query),
       );

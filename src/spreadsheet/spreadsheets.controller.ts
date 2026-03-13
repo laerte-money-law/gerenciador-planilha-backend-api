@@ -1,4 +1,4 @@
-import {  Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SpreadsheetService } from './spreadsheets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -12,11 +12,10 @@ import { DeleteColumnDto } from './model/dto/delete-column.dto';
 import { StreamableFile } from '@nestjs/common';
 import { stat } from 'fs';
 
-
 @Controller('spreadsheets')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SpreadsheetController {
-  constructor(private readonly spreadsheetService: SpreadsheetService) {}
+  constructor(private readonly spreadsheetService: SpreadsheetService) { }
 
   @Post('/import')
   @Roles(Role.ADMIN, Role.USER)

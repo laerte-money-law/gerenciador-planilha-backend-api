@@ -1,7 +1,8 @@
 import { ImportSpreadsheetFactory } from '../infra/spreadsheet-import.factory';
-import { COLUMN_TYPE, ColumnDto } from '../model/dto/column.dto';
+import { ColumnDto } from '../model/dto/column.dto';
 import { DynamicTableRepository } from '../../infra/repository/dynamic-table.repository';
 import { Injectable, Logger } from '@nestjs/common';
+import { MONEY_LAW_GEP_DEFAULT_COLUMNS } from '../constants';
 
 @Injectable()
 export class CreateSpreadsheetService {
@@ -10,13 +11,7 @@ export class CreateSpreadsheetService {
   constructor(
     private readonly importSpreadsheetFactory: ImportSpreadsheetFactory,
     private readonly dynamicTableRepository: DynamicTableRepository,
-  ) {}
-
-  private readonly MONEY_LAW_GEP_DEFAULT_COLUMNS = [
-    new ColumnDto('ML_ID', COLUMN_TYPE.PRIMARY_KEY),
-    new ColumnDto('ML_STATUS', COLUMN_TYPE.STATUS, ""),
-    new ColumnDto('ML_USER_ATRIBUIDO', COLUMN_TYPE.STRING, ''),
-  ];
+  ) { }
 
   async execute(tableName: string, file: Express.Multer.File) {
     //todo: criar tabela dinâmica com base no arquivo recebido e preencher os dados
@@ -40,7 +35,7 @@ export class CreateSpreadsheetService {
     tableName: string,
     columns: ColumnDto[],
   ) {
-    const finalColumns = [...this.MONEY_LAW_GEP_DEFAULT_COLUMNS, ...columns];
+    const finalColumns = [...MONEY_LAW_GEP_DEFAULT_COLUMNS, ...columns];
     await this.dynamicTableRepository.createTable(tableName, finalColumns);
   }
 

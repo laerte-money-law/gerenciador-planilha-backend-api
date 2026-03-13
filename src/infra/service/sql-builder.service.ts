@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ColumnDto } from '../../spreadsheet/model/dto/column.dto';
-import { ROW_STATUS } from '../../spreadsheet/model/enum/row-status.enum';
 import { GetPaginatedData } from '../../spreadsheet/model/dto/get-paginated-data';
+import { ML_COLUMN_ID, ML_COLUMN_STATUS } from '../../spreadsheet/constants';
 
 @Injectable()
 export class SqlBuilderService {
@@ -10,7 +10,7 @@ export class SqlBuilderService {
   }
 
   GET_TABLE_COLUMNS(tableName: string): string {
-    return `SELECT * FROM dbo.${tableName} LIMIT 1;`;
+    return `SELECT TOP 1 * FROM dbo.[${tableName}];`;
   }
 
   CREATE_TABLE(tableName: string, columns: ColumnDto[]): string {
@@ -42,22 +42,22 @@ export class SqlBuilderService {
 
     query += this.buildWhereCondition(getPaginatedDataDTO);
 
-    query += ` ORDER BY id_ml ASC`;
+    query += ` ORDER BY ${ML_COLUMN_ID} ASC`;
     query += ` OFFSET ${finalOffset} ROWS FETCH NEXT ${limit} ROWS ONLY;`;
 
     return query;
   }
 
   private buildWhereCondition(getDataDTO: GetPaginatedData) {
-    const {status, notStatus, search, } = getDataDTO
+    const { status, notStatus, search, } = getDataDTO
     const conditions: string[] = [];
 
     if (status) {
-      conditions.push(`status_ml = '${status}'`);
+      conditions.push(`${ML_COLUMN_STATUS} = '${status}'`);
     }
 
     if (notStatus) {
-      conditions.push(`status_ml <> '${notStatus}'`);
+      conditions.push(`${ML_COLUMN_STATUS} <> '${notStatus}'`);
     }
 
     if (search) {

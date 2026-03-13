@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
-import { NotFoundAppError } from '../../shared/exceptions/custom/not-found.error';
-import { ERROR_MESSAGES } from '../../shared/exceptions/error-messages.enum';
 import { DynamicTableRepository } from '../../infra/repository/dynamic-table.repository';
+import { MetadataService } from '../services/metadata.service';
 import { InjectRepository } from '@nestjs/typeorm';
+import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class DeleteSpreadsheetByIdUseCase {
   private readonly logger = new Logger(DeleteSpreadsheetByIdUseCase.name);
 
   constructor(
+    private readonly metadataService: MetadataService,
     @InjectRepository(SpreadsheetMetadata)
     private readonly metadataRepository: Repository<SpreadsheetMetadata>,
     private readonly dynamicTableRepository: DynamicTableRepository,
@@ -19,13 +19,7 @@ export class DeleteSpreadsheetByIdUseCase {
   public async execute(spreadsheetId: string): Promise<void> {
     this.logger.log(`Iniciando exclusão da planilha com ID: ${spreadsheetId}`);
 
-    const spreadsheet = await this.metadataRepository.findOneBy({
-      id: spreadsheetId,
-    });
-
-    if (!spreadsheet) {
-      throw new NotFoundAppError(ERROR_MESSAGES.SPREADSHEET_NOT_FOUND);
-    }
+    const spreadsheet = await this.metadataService.getMetadata(spreadsheetId);
 
     await this.dynamicTableRepository.deleteTable(spreadsheet.tableName);
 

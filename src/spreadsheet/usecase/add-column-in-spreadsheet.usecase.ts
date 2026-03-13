@@ -1,16 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
-import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
+import { DataSource } from 'typeorm';
 import { AddColumnDto } from '../model/dto/add-column.dto';
-import { InjectRepository } from '@nestjs/typeorm';
 import { AddColumnResponseDto } from '../model/dto/add-column.response.dto';
+import { MetadataService } from '../services/metadata.service';
 
 @Injectable()
 export class AddColumnInSpreadsheetUseCase {
   constructor(
     private readonly dataSource: DataSource,
-    @InjectRepository(SpreadsheetMetadata)
-    private readonly metadataRepository: Repository<SpreadsheetMetadata>,
+    private readonly metadataService: MetadataService,
   ) {}
 
   async execute(
@@ -19,13 +17,7 @@ export class AddColumnInSpreadsheetUseCase {
   ): Promise<AddColumnResponseDto> {
     const columnName = addColumnDto.getColumnName();
 
-    const spreadsheet = await this.metadataRepository.findOne({
-      where: { id: spreadsheetId },
-    });
-
-    if (!spreadsheet) {
-      throw new Error('Spreadsheet not found');
-    }
+    const spreadsheet = await this.metadataService.getMetadata(spreadsheetId);
 
     const alterSql = `
         IF COL_LENGTH('dbo.${spreadsheet.tableName}', '${columnName}') IS NULL
