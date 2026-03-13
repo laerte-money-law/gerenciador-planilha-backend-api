@@ -42,7 +42,7 @@ export class SqlBuilderService {
 
     query += this.buildWhereCondition(getPaginatedDataDTO);
 
-    query += ` ORDER BY ${ML_COLUMN_ID} ASC`;
+    query += ` ORDER BY ML_ID ASC`;
     query += ` OFFSET ${finalOffset} ROWS FETCH NEXT ${limit} ROWS ONLY;`;
 
     return query;
@@ -53,11 +53,11 @@ export class SqlBuilderService {
     const conditions: string[] = [];
 
     if (status) {
-      conditions.push(`${ML_COLUMN_STATUS} = '${status}'`);
+      conditions.push(`ML_STATUS = '${status}'`);
     }
 
     if (notStatus) {
-      conditions.push(`${ML_COLUMN_STATUS} <> '${notStatus}'`);
+      conditions.push(`ML_STATUS <> '${notStatus}'`);
     }
 
     if (search) {

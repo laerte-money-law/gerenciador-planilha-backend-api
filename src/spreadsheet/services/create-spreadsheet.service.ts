@@ -23,7 +23,7 @@ export class CreateSpreadsheetService {
 
     //todo: validar e adicionar linhas na tabela criada
     const columns = columnsDtos.map((columnDto) =>
-      columnDto.getSanitizedName(),
+      `[${columnDto.getSanitizedName()}]`,
     );
 
     let values = importer.getRows();
