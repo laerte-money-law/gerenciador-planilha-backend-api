@@ -25,4 +25,12 @@ export class GetPaginatedData {
 
     this.status = filters.status;
   }
+
+  if (filters.status === ROW_STATUS.VALIDADO) {
+    this.status = ROW_STATUS.VALIDADO;
+    return;
+  }
+
+  this.status = filters.status;
+}
 }

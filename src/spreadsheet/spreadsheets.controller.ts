@@ -10,6 +10,7 @@ import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { DeleteColumnDto } from './model/dto/delete-column.dto';
 import { StreamableFile } from '@nestjs/common';
+import { stat } from 'fs';
 
 @Controller('spreadsheets')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -24,12 +25,15 @@ export class SpreadsheetController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateSpreadsheetDto,
   ) {
-    return this.spreadsheetService.importSpreadsheetV2(
-      req.user,
+
+
+    return this.spreadsheetService.importSpreadsheet(
       file,
+      req.user.userId,
       body.teamId,
       body.clientId,
       body.service,
+      body.status,
     );
   }
 
