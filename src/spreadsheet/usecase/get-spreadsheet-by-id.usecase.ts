@@ -10,7 +10,7 @@ export class GetSpreadsheetByIdUseCase {
   constructor(
     private readonly metadataService: MetadataService,
     private readonly dynamicTableRepository: DynamicTableRepository,
-  ) {}
+  ) { }
 
   async execute(
     spreadsheetId: string,
@@ -32,14 +32,14 @@ export class GetSpreadsheetByIdUseCase {
     const columns =
       rows.length > 0
         ? Object.keys(rows[0]).filter(
-            (col) =>
-              ![
-                'created_by',
-                'last_updated_by',
-                'team_id',
-                'created_at',
-              ].includes(col),
-          )
+          (col) =>
+            ![
+              'created_by',
+              'last_updated_by',
+              'team_id',
+              'created_at',
+            ].includes(col),
+        )
         : [];
 
 

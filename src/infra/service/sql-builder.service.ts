@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ColumnDto } from '../../spreadsheet/model/dto/column.dto';
-import { ROW_STATUS } from '../../spreadsheet/model/enum/row-status.enum';
 import { GetPaginatedData } from '../../spreadsheet/model/dto/get-paginated-data';
+import { ML_COLUMN_ID, ML_COLUMN_STATUS } from '../../spreadsheet/constants';
 
 @Injectable()
 export class SqlBuilderService {
@@ -42,7 +42,7 @@ export class SqlBuilderService {
 
     query += this.buildWhereCondition(getPaginatedDataDTO);
 
-    query += ` ORDER BY id_ml ASC`;
+    query += ` ORDER BY ${ML_COLUMN_ID} ASC`;
     query += ` OFFSET ${finalOffset} ROWS FETCH NEXT ${limit} ROWS ONLY;`;
 
     return query;
@@ -53,11 +53,11 @@ export class SqlBuilderService {
     const conditions: string[] = [];
 
     if (status) {
-      conditions.push(`status_ml = '${status}'`);
+      conditions.push(`${ML_COLUMN_STATUS} = '${status}'`);
     }
 
     if (notStatus) {
-      conditions.push(`status_ml <> '${notStatus}'`);
+      conditions.push(`${ML_COLUMN_STATUS} <> '${notStatus}'`);
     }
 
     if (search) {

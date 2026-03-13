@@ -43,7 +43,7 @@ export class SpreadsheetService {
     private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
     private readonly importSpreadsheetUseCaseV2: ImportSpreadsheetUseCaseV2,
     private readonly getSpreadsheetByIdUseCase: GetSpreadsheetByIdUseCase,
-  ) {}
+  ) { }
 
   async importSpreadsheet(
     file: Express.Multer.File,
@@ -176,14 +176,14 @@ export class SpreadsheetService {
     const columns =
       rows.length > 0
         ? Object.keys(rows[0]).filter(
-            (col) =>
-              ![
-                'created_by',
-                'last_updated_by',
-                'team_id',
-                'created_at',
-              ].includes(col),
-          )
+          (col) =>
+            ![
+              'created_by',
+              'last_updated_by',
+              'team_id',
+              'created_at',
+            ].includes(col),
+        )
         : [];
 
     return {

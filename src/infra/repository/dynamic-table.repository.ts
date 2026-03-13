@@ -58,6 +58,7 @@ export class DynamicTableRepository {
       tableName,
       getPaginatedDataDTO,
     );
+
     return this.executeQuery<any[]>(
       query,
       `Error while fetching paginated data from ${tableName}`,
