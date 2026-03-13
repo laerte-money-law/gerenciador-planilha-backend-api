@@ -1,28 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
-import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
-import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { MetadataService } from '../services/metadata.service';
+import { ML_COLUMN_ID } from '../constants';
 
 @Injectable()
 export class UpdateSpreadsheetRowUsecase {
   constructor(
     private readonly dataSource: DataSource,
-    @InjectRepository(SpreadsheetMetadata)
-    private readonly metadataRepository: Repository<SpreadsheetMetadata>,
-  ) {}
+    private readonly metadataService: MetadataService,
+  ) { }
 
   async execute(
     spreadsheetId: string,
     rowId: number,
     updateData: Record<string, string>,
   ) {
-    const spreadsheet = await this.metadataRepository.findOne({
-      where: { id: spreadsheetId },
-    });
-
-    if (!spreadsheet) {
-      throw new Error('Spreadsheet not found');
-    }
+    const spreadsheet = await this.metadataService.getMetadata(spreadsheetId);
 
     const tableName = spreadsheet.tableName;
     if (!tableName) {
@@ -42,6 +35,9 @@ export class UpdateSpreadsheetRowUsecase {
 
     let index = 0;
 
+    //removing id column from updateData
+    delete updateData["ML_ID"]
+
     Object.entries(updateData).forEach(([key, value]) => {
       setClause.push(`[${key}] = @${index}`);
       params.push(value);
@@ -51,7 +47,7 @@ export class UpdateSpreadsheetRowUsecase {
     const updateSql = `
       UPDATE [${tableName}]
       SET ${setClause.join(', ')}
-      WHERE id_ml = @${index}
+      WHERE ${ML_COLUMN_ID} = @${index}
     `;
 
     params.push(rowId);
