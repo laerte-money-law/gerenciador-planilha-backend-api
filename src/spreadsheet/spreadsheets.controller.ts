@@ -26,14 +26,12 @@ export class SpreadsheetController {
     @Body() body: CreateSpreadsheetDto,
   ) {
 
-
-    return this.spreadsheetService.importSpreadsheet(
+    return this.spreadsheetService.importSpreadsheetV2(
+      req.user,
       file,
-      req.user.userId,
       body.teamId,
       body.clientId,
       body.service,
-      body.status,
     );
   }
 
