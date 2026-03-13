@@ -1,31 +1,31 @@
-import { DataSource, Repository } from "typeorm";
-import { SpreadsheetMetadata } from "../model/spreadsheet.metadata.entity";
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { DataSource } from "typeorm";
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import * as XLSX from 'xlsx';
 import { Attachment } from "src/attachment/model/attachment.entity";
 import { ConfigService } from "@nestjs/config";
+import { Repository } from 'typeorm';
+import { MetadataService } from '../services/metadata.service';
+import { ML_COLUMN_ID } from '../constants';
 
 
 @Injectable()
 export class ExportSpreadsheetUsecase {
   constructor(
-    @InjectRepository(SpreadsheetMetadata)
-    private readonly metadataRepository: Repository<SpreadsheetMetadata>,
-
     @InjectRepository(Attachment)
     private readonly attachmentRepository: Repository<Attachment>,
 
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
-  ) {}
+    private readonly metadataService: MetadataService,
+  ) { }
 
   async execute(
     spreadsheetId: string,
     role: string,
     teamId: number,
   ) {
-    const metadata = await this.findMetadata(spreadsheetId, role, teamId);
+    const metadata = await this.metadataService.getMetadata(spreadsheetId);
 
     const rows = await this.fetchRows(metadata.tableName);
 
@@ -42,35 +42,12 @@ export class ExportSpreadsheetUsecase {
     return this.generateXlsx(metadata.tableName, header, data);
   }
 
-  private async findMetadata(
-    spreadsheetId: string,
-    role: string,
-    teamId: number,
-  ) {
-    const metadata = await this.metadataRepository.findOne({
-      where:
-        role === 'ADMIN'
-          ? { id: spreadsheetId }
-          : { id: spreadsheetId, team: { id: teamId } },
-    });
-
-    if (!metadata) {
-      throw new NotFoundException('Planilha não encontrada');
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(metadata.tableName)) {
-      throw new Error('Nome de tabela inválido');
-    }
-
-    return metadata;
-  }
-
   private async fetchRows(tableName: string) {
     return this.dataSource
       .createQueryBuilder()
       .select('t.*')
       .from(tableName, 't')
-      .orderBy('t.id_ml', 'ASC')
+      .orderBy(`t.${ML_COLUMN_ID}`, 'ASC')
       .getRawMany();
   }
 

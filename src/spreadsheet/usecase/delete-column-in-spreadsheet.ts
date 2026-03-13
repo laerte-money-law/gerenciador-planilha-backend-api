@@ -1,27 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
-import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
-import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { DeleteColumnDto } from '../model/dto/delete-column.dto';
+import { MetadataService } from '../services/metadata.service';
 
 @Injectable()
 export class DeleteColumnInSpreadsheet {
   constructor(
     private readonly dataSource: DataSource,
-    @InjectRepository(SpreadsheetMetadata)
-    private readonly metadataRepository: Repository<SpreadsheetMetadata>,
+    private readonly metadataService: MetadataService,
   ) {}
 
   async execute(spreadsheetId: string, deleteColumnDto: DeleteColumnDto) {
     const columnName = deleteColumnDto.columnName;
 
-    const spreadsheet = await this.metadataRepository.findOne({
-      where: { id: spreadsheetId },
-    });
-
-    if (!spreadsheet) {
-      throw new Error('Spreadsheet not found');
-    }
+    const spreadsheet = await this.metadataService.getMetadata(spreadsheetId);
 
     const tableName = spreadsheet.tableName;
     if (!tableName) {

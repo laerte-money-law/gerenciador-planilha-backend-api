@@ -27,6 +27,7 @@ import { ImportSpreadsheetUseCaseV2 } from './usecase/import-spreadsheet.usecase
 import { User } from '../users/model/user.entity';
 
 import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
+import { MetadataService } from './services/metadata.service';
 
 @Injectable()
 export class SpreadsheetService {
@@ -43,6 +44,7 @@ export class SpreadsheetService {
     private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
     private readonly importSpreadsheetUseCaseV2: ImportSpreadsheetUseCaseV2,
     private readonly getSpreadsheetByIdUseCase: GetSpreadsheetByIdUseCase,
+    private readonly metadataService: MetadataService,
   ) { }
 
   async importSpreadsheet(
@@ -125,17 +127,9 @@ export class SpreadsheetService {
 
     console.log("SPREADSHEET ID: " + spreadsheetId);
 
-    const metadata = await this.metadataRepository.findOne({
-      where: {
-        id: spreadsheetId,
-      }
-    });
+    const metadata = await this.metadataService.getMetadata(spreadsheetId);
 
     console.log("SPREADSHEET metadata: " + metadata);
-
-    if (!metadata) {
-      throw new Error('Planilha não encontrada');
-    }
 
     const tableName = metadata.tableName;
 
