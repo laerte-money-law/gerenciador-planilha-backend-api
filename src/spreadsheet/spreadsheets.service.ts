@@ -82,6 +82,7 @@ export class SpreadsheetService {
 
   async getSpreadsheets(
     role: Role,
+    clientId: number,
     teamId: number,
     page = 1,
     limit = 15,
@@ -89,7 +90,7 @@ export class SpreadsheetService {
     const skip = (page - 1) * limit;
 
     const [items, total] = await this.metadataRepository.findAndCount({
-      where: role === Role.ADMIN ? {} : { team: { id: teamId } },
+      where: role === Role.ADMIN ? {} : { client: { id: clientId } },
       order: { createdAt: 'DESC' },
       skip,
       take: limit,

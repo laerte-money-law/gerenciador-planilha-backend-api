@@ -11,119 +11,118 @@ export class UserRepository {
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         private readonly teamRepository: TeamRepository,
-    ){}
+    ) { }
 
-    async createUser(newUser: User): Promise<User>{
-        try{
-            console.log(newUser)
+    async createUser(newUser: User): Promise<User> {
+        try {
             const team = await this.teamRepository.findById(newUser.team.id);
             if (!team) throw new NotFoundException('Team not found');
             newUser.team = team;
             return await this.userRepository.save(newUser)
 
-        }catch(error){
-            if(error instanceof QueryFailedError) throw new ConflictException(error.message);
+        } catch (error) {
+            if (error instanceof QueryFailedError) throw new ConflictException(error.message);
             throw error;
         }
     }
 
-    async findUserByEmail(email: string):Promise<User | null > {
-        try{
+    async findUserByEmail(email: string): Promise<User | null> {
+        try {
             return await this.userRepository.findOne({
                 where: { email },
-                relations: ['team']
+                relations: ['team', 'client']
             });
-        }catch(error) {
-            if(error instanceof QueryFailedError) throw new ConflictException(error.message);
+        } catch (error) {
+            if (error instanceof QueryFailedError) throw new ConflictException(error.message);
             throw error;
         }
     }
 
     async getAllUsers(page: number, limit: number): Promise<PaginatedResponseDto<User>> {
 
-    const skip = (page - 1) * limit;
+        const skip = (page - 1) * limit;
 
-    try {
+        try {
 
-        const [items, total] = await this.userRepository.findAndCount({
-            relations: ['team'],
-            skip,
-            take: limit
-        });
+            const [items, total] = await this.userRepository.findAndCount({
+                relations: ['team', 'client'],
+                skip,
+                take: limit
+            });
 
-        return {
-            data: items,
-            page,
-            limit,
-            total
-        };
+            return {
+                data: items,
+                page,
+                limit,
+                total
+            };
 
-    } catch (error) {
+        } catch (error) {
 
-        if (error instanceof QueryFailedError) {
-            throw new ConflictException(error.message);
+            if (error instanceof QueryFailedError) {
+                throw new ConflictException(error.message);
+            }
+
+            throw error;
         }
 
-        throw error;
     }
 
-    }
-
-     async updateUser(id: number, dto: any) {
-         const user = await this.userRepository.findOne({
+    async updateUser(id: number, dto: any) {
+        const user = await this.userRepository.findOne({
             where: { id },
-            relations: ['team']
-        });
-
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-    if (dto.teamId) {
-        const team = await this.teamRepository.findById(dto.teamId);
-
-    if (!team) {
-        throw new NotFoundException("Team not found");
-    }
-
-    user.team = team;
-    }
-
-    if (dto.name) {
-      user.name = dto.name;
-    }
-
-    if (dto.email) {
-      user.email = dto.email;
-    }
-
-    if (dto.role) {
-      user.role = dto.role;
-    }
-
-    if (dto.teamId) {
-      user.team = { id: dto.teamId } as any;
-    }
-
-    if (dto.password) {
-      user.password = await bcrypt.hash(dto.password, 10);
-    }
-
-    return this.userRepository.save(user);
-    }
-
-    async deleteUser(id: number) {
-            const user = await this.userRepository.findOne({
-        where: { id }
+            relations: ['team', 'client']
         });
 
         if (!user) {
-        throw new NotFoundException('Usuário não encontrado');
+            throw new NotFoundException('Usuário não encontrado');
+        }
+        if (dto.teamId) {
+            const team = await this.teamRepository.findById(dto.teamId);
+
+            if (!team) {
+                throw new NotFoundException("Team not found");
+            }
+
+            user.team = team;
+        }
+
+        if (dto.name) {
+            user.name = dto.name;
+        }
+
+        if (dto.email) {
+            user.email = dto.email;
+        }
+
+        if (dto.role) {
+            user.role = dto.role;
+        }
+
+        if (dto.teamId) {
+            user.team = { id: dto.teamId } as any;
+        }
+
+        if (dto.password) {
+            user.password = await bcrypt.hash(dto.password, 10);
+        }
+
+        return this.userRepository.save(user);
+    }
+
+    async deleteUser(id: number) {
+        const user = await this.userRepository.findOne({
+            where: { id }
+        });
+
+        if (!user) {
+            throw new NotFoundException('Usuário não encontrado');
         }
 
         await this.userRepository.delete(id);
 
         return {
-        message: 'Usuário removido com sucesso'
+            message: 'Usuário removido com sucesso'
         };
     }
 }

@@ -37,7 +37,8 @@ export class AuthService {
         {
           sub: user.id,
           email: user.email,
-          teamId: user.team.id,
+          teamId: user.team?.id,
+          clientId: user.client?.id,
           role: user.role,
         },
         {

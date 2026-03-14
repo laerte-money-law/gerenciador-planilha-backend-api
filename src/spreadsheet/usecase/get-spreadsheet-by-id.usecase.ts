@@ -42,6 +42,7 @@ export class GetSpreadsheetByIdUseCase {
         )
         : [];
 
+      
 
     return {
       id: metadata.id,

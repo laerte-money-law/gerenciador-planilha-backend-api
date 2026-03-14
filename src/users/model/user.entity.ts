@@ -1,4 +1,5 @@
 import { Team } from "../../team/model/team.entity";
+import { Client } from "../../client/model/client.entity";
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('user')
@@ -12,16 +13,20 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ name: 'password_hash'})
+  @Column({ name: 'password_hash' })
   password: string;
 
   @ManyToOne(() => Team)
   @JoinColumn({ name: 'team_id' })
   team: Team;
 
+  @ManyToOne(() => Client)
+  @JoinColumn({ name: 'client_id' })
+  client: Client;
+
   @CreateDateColumn()
   created_at: Date;
 
-  @Column({ name: 'role',  nullable: true, default: "USER"})
+  @Column({ name: 'role', nullable: true, default: "USER" })
   role: string;
 }

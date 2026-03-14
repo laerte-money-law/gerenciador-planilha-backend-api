@@ -42,9 +42,10 @@ export class SpreadsheetController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const { teamId, role } = req.user;
+    const { teamId, role, clientId } = req.user;
     return this.spreadsheetService.getSpreadsheets(
       role,
+      clientId,
       teamId,
       Number(page),
       Number(limit),
