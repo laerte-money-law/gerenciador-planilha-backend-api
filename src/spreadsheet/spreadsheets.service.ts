@@ -7,7 +7,6 @@ import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
-import { ImportSpreadsheetUsecase } from './usecase/import-spreadsheet.usecase';
 import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadsheet.usecase';
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { AddColumnResponseDto } from './model/dto/add-column.response.dto';
@@ -36,7 +35,6 @@ export class SpreadsheetService {
     private readonly dataSource: DataSource,
     @InjectRepository(SpreadsheetMetadata)
     private readonly metadataRepository: Repository<SpreadsheetMetadata>,
-    private readonly importSpreadsheetUseCase: ImportSpreadsheetUsecase,
     private readonly addColumnInSpreadsheet: AddColumnInSpreadsheetUseCase,
     private readonly deleteColumnInSpreadsheet: DeleteColumnInSpreadsheet,
     private readonly updateSpreadsheetRowUsecase: UpdateSpreadsheetRowUsecase,
@@ -47,24 +45,6 @@ export class SpreadsheetService {
     private readonly getSpreadsheetByIdUseCase: GetSpreadsheetByIdUseCase,
     private readonly metadataService: MetadataService,
   ) { }
-
-  async importSpreadsheet(
-    file: Express.Multer.File,
-    userId: number,
-    teamId: number,
-    clientId: number,
-    service: string,
-    status: string,
-  ) {
-    return this.importSpreadsheetUseCase.execute(
-      file,
-      userId,
-      teamId,
-      clientId,
-      service,
-      status,
-    );
-  }
 
   async importSpreadsheetV2(
     user: User,
