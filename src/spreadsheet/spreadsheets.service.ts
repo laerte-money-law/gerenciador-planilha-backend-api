@@ -25,6 +25,7 @@ import { ClientOutputDto } from '../client/model/dto/client.ouput.dto';
 import { ImportSpreadsheetUseCaseV2 } from './usecase/import-spreadsheet.usecaseV2';
 import { User } from '../users/model/user.entity';
 
+import { GetSpreadsheetsUseCase } from './usecase/get-spreadsheets.usecase';
 import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
 import { MetadataService } from './services/metadata.service';
 import { UserLoggedDto } from '../auth/user-logged.dto';
@@ -42,6 +43,7 @@ export class SpreadsheetService {
     private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUseCase,
     private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
     private readonly importSpreadsheetUseCaseV2: ImportSpreadsheetUseCaseV2,
+    private readonly getSpreadsheetsUseCase: GetSpreadsheetsUseCase,
     private readonly getSpreadsheetByIdUseCase: GetSpreadsheetByIdUseCase,
     private readonly metadataService: MetadataService,
   ) { }
@@ -66,33 +68,7 @@ export class SpreadsheetService {
     page = 1,
     limit = 15,
   ): Promise<PaginatedResponseDto<SpreadsheetListItemDto>> {
-    const skip = (page - 1) * limit;
-
-    const [items, total] = await this.metadataRepository.findAndCount({
-      where: userLogged.role === Role.ADMIN ? {} : { client: { id: userLogged.clientId } },
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-      relations: {
-        team: true,
-        client: true,
-      },
-    });
-
-    return {
-      data: items.map((item) => ({
-        id: item.id,
-        name: item.originalFileName,
-        team: item.team,
-        service: item.service,
-        status: item.status,
-        client: ClientOutputDto.fromEntity(item.client),
-        createdAt: item.createdAt,
-      })),
-      page,
-      limit,
-      total,
-    };
+    return this.getSpreadsheetsUseCase.execute(userLogged, page, limit);
   }
 
   async getSpreadsheetByIdPaginated(
