@@ -14,6 +14,7 @@ export class MetadataService {
 
     const metadata = await this.metadataRepository.findOne({
       where: { id: spreadsheetId },
+      relations: ['client', 'team']
     });
 
     if (!metadata) {

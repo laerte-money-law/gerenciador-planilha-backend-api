@@ -28,6 +28,7 @@ import { User } from '../users/model/user.entity';
 
 import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
 import { MetadataService } from './services/metadata.service';
+import { UserLoggedDto } from '../auth/user-logged.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -81,16 +82,14 @@ export class SpreadsheetService {
   }
 
   async getSpreadsheets(
-    role: Role,
-    clientId: number,
-    teamId: number,
+    userLogged: UserLoggedDto,
     page = 1,
     limit = 15,
   ): Promise<PaginatedResponseDto<SpreadsheetListItemDto>> {
     const skip = (page - 1) * limit;
 
     const [items, total] = await this.metadataRepository.findAndCount({
-      where: role === Role.ADMIN ? {} : { client: { id: clientId } },
+      where: userLogged.role === Role.ADMIN ? {} : { client: { id: userLogged.clientId } },
       order: { createdAt: 'DESC' },
       skip,
       take: limit,
@@ -194,16 +193,17 @@ export class SpreadsheetService {
 
   async getSpreadsheetByIdPaginatedV2(
     spreadsheetId: string,
+    userLogged: UserLoggedDto,
     filters: SpreadsheetFiltersDto,
   ): Promise<SpreadsheetViewResponseDto> {
 
-    return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters);
+    return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters, userLogged);
   }
-  async exportSpreadsheet(spreadsheetId: string, role: string, teamId: number) {
+  async exportSpreadsheet(spreadsheetId: string, userLogged: UserLoggedDto) {
     return await this.exportSpreadsheetUsecase.execute(
       spreadsheetId,
-      role,
-      teamId,
+      userLogged.role,
+      userLogged.teamId as number,
     );
   }
 
@@ -226,8 +226,7 @@ export class SpreadsheetService {
 
   async getSpreadsheetColumns(
     spreadsheetId: string,
-    role: string,
-    teamId: number,
+    userLogged: UserLoggedDto,
   ): Promise<GetSpreadsheetColumnsResponseDto> {
     return this.getSpreadsheetInformationUseCase.execute(spreadsheetId);
   }

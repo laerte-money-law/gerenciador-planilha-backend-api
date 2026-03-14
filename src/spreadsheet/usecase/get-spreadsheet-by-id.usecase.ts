@@ -4,6 +4,11 @@ import { SpreadsheetViewResponseDto } from '../model/dto/spreadsheet-view-respon
 import { MetadataService } from '../services/metadata.service';
 import { GetPaginatedData } from '../model/dto/get-paginated-data';
 import { Injectable } from '@nestjs/common';
+import { Role } from '../../security/role/role.enum';
+import { UserLoggedDto } from '../../auth/user-logged.dto';
+import { UnauthorizedAppError } from '../../shared/exceptions/custom/unauthorized.error';
+import { ERROR_MESSAGES } from '../../shared/exceptions/error-messages.enum';
+import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
 
 @Injectable()
 export class GetSpreadsheetByIdUseCase {
@@ -15,9 +20,12 @@ export class GetSpreadsheetByIdUseCase {
   async execute(
     spreadsheetId: string,
     filters: SpreadsheetFiltersDto,
+    userLogged: UserLoggedDto,
   ): Promise<SpreadsheetViewResponseDto> {
 
     const metadata = await this.metadataService.getMetadata(spreadsheetId);
+
+    this.validateUserAccess(metadata, userLogged);
 
     const tableName = metadata.tableName;
 
@@ -53,5 +61,19 @@ export class GetSpreadsheetByIdUseCase {
       limit: filters.limit,
       total,
     };
+  }
+
+  private validateUserAccess(metadata: SpreadsheetMetadata, userLogged: UserLoggedDto): void {
+    if (userLogged.role === Role.CLIENT) {
+      if (metadata.client?.id !== userLogged.clientId) {
+        throw new UnauthorizedAppError(ERROR_MESSAGES.UNAUTHORIZED_SPREADSHEET_ACCESS);
+      }
+    }
+
+    if (userLogged.role === Role.USER) {
+      if (metadata.team?.id !== userLogged.teamId) {
+        throw new UnauthorizedAppError(ERROR_MESSAGES.UNAUTHORIZED_SPREADSHEET_ACCESS);
+      }
+    }
   }
 }

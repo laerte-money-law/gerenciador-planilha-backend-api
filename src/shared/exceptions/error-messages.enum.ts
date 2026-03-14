@@ -25,6 +25,10 @@ export const ERROR_MESSAGES = {
     code: 5,
     message: 'Não foi encontrado nenhum time com o código informado.',
   },
+  UNAUTHORIZED_SPREADSHEET_ACCESS: {
+    code: 6,
+    message: 'Usuario nao tem acesso a planilha',
+  },
   ERROR_EXECUTING_QUERY: (query: string) => {
     return {
       code: 3,
