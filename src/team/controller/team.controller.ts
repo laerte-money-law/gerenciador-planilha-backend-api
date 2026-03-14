@@ -7,19 +7,17 @@ import { Roles } from "src/security/role/role.decorator";
 import { Role } from "src/security/role/role.enum";
 
 @Controller()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(Role.ADMIN, Role.CLIENT)
 export class TeamController{
     constructor(
         private readonly teamService: TeamService
     ){}
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles(Role.ADMIN)
     @Post('teams')
     createTeam(@Body() newTeam: TeamDto){
         return this.teamService.createTeam(newTeam);
     }
 
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles(Role.ADMIN)
     @Get('teams')
     getAllTeams(){
         return this.teamService.getAllTeams();
