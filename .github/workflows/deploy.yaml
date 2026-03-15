@@ -77,7 +77,7 @@ jobs:
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: raphaelcomph-dev,laerte-money-law,maycon164,suzanarn
+          approvers: laerte-money-law,maycon164,suzanarn
           minimum-approvals: 1
           issue-title: 'Manual Approval Required for PROD Deployment'
           issue-body: "Please comment 'approve' or 'deny' to control the production deploy."
