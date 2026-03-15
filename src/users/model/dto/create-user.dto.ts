@@ -17,6 +17,10 @@ export class CreateUserDto {
     @IsNumber()
     teamId: number
 
+    @Expose({ name: 'client_id' })
+    @IsNumber()
+    clientId: number
+
     @IsNotEmpty()
     @IsEnum(Role)
     role: Role

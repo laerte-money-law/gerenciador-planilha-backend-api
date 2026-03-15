@@ -26,7 +26,12 @@ export class TeamRepository {
         });
     }
 
-    async findAllTeams(): Promise<Team[]> {
+    async findAllTeams(clientId?: number): Promise<Team[]> {
+        if (clientId) {
+            return this.teamRepository.find({
+                where: { users: { client: { id: clientId } } }
+            });
+        }
         return this.teamRepository.find();
     }
 }

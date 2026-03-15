@@ -9,9 +9,9 @@ import { UpdateUserDto } from '../model/dto/update-user.dto';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.ADMIN, Role.CLIENT)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Post()
   createUser(@Body() newUser: CreateUserDto) {

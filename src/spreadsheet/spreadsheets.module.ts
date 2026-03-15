@@ -3,7 +3,6 @@ import { SpreadsheetController } from './spreadsheets.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SpreadsheetService } from './spreadsheets.service';
 import { SpreadsheetMetadata } from './model/spreadsheet.metadata.entity';
-import { ImportSpreadsheetUsecase } from './usecase/import-spreadsheet.usecase';
 import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadsheet.usecase';
 import { DeleteColumnInSpreadsheet } from './usecase/delete-column-in-spreadsheet';
 import { UpdateSpreadsheetRowUsecase } from './usecase/update-spreadsheet-row.usecase';
@@ -19,6 +18,7 @@ import { Team } from '../team/model/team.entity';
 import { ImportSpreadsheetFactory } from './infra/spreadsheet-import.factory';
 import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
 import { MetadataService } from './services/metadata.service';
+import { GetSpreadsheetsUseCase } from './usecase/get-spreadsheets.usecase';
 
 @Module({
   imports: [
@@ -28,7 +28,6 @@ import { MetadataService } from './services/metadata.service';
   controllers: [SpreadsheetController],
   providers: [
     SpreadsheetService,
-    ImportSpreadsheetUsecase,
     AddColumnInSpreadsheetUseCase,
     DeleteColumnInSpreadsheet,
     UpdateSpreadsheetRowUsecase,
@@ -39,7 +38,8 @@ import { MetadataService } from './services/metadata.service';
     ImportSpreadsheetFactory,
     CreateSpreadsheetService,
     GetSpreadsheetByIdUseCase,
-    MetadataService
+    MetadataService,
+    GetSpreadsheetsUseCase
   ],
   exports: [SpreadsheetService],
 })

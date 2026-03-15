@@ -10,7 +10,7 @@ import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { DeleteColumnDto } from './model/dto/delete-column.dto';
 import { StreamableFile } from '@nestjs/common';
-import { stat } from 'fs';
+import { UserLoggedDto } from '../auth/user-logged.dto';
 
 @Controller('spreadsheets')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -36,16 +36,15 @@ export class SpreadsheetController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.USER)
+  @Roles(Role.ADMIN, Role.USER, Role.CLIENT)
   async getSpreadsheets(
     @Req() req: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const { teamId, role } = req.user;
+    const userLogged: UserLoggedDto = req.user;
     return this.spreadsheetService.getSpreadsheets(
-      role,
-      teamId,
+      userLogged,
       Number(page),
       Number(limit),
     );
@@ -58,13 +57,16 @@ export class SpreadsheetController {
   }
 
   @Get('/:spreadsheetId')
+  @Roles(Role.ADMIN, Role.USER, Role.CLIENT)
   async getSpreadsheet(
     @Param('spreadsheetId') id: string,
     @Req() req: any,
     @Query() filters: SpreadsheetFiltersDto,
   ) {
+    const userLogged: UserLoggedDto = req.user;
     return this.spreadsheetService.getSpreadsheetByIdPaginatedV2(
       id,
+      userLogged,
       filters,
     );
   }
@@ -96,11 +98,10 @@ export class SpreadsheetController {
     @Param('spreadsheetId') spreadsheetId: string,
     @Req() req: any,
   ) {
-    const { role, teamId } = req.user;
+    const userLogged: UserLoggedDto = req.user;
     return this.spreadsheetService.getSpreadsheetColumns(
       spreadsheetId,
-      role,
-      teamId,
+      userLogged,
     );
   }
 
@@ -119,12 +120,11 @@ export class SpreadsheetController {
 
   @Get('/:spreadsheetId/export')
   async exportSpreadsheet(@Param('id') id: string, @Req() req: any) {
-    const { role, teamId } = req.user;
+    const userLogged: UserLoggedDto = req.user;
 
     const result = await this.spreadsheetService.exportSpreadsheet(
       id,
-      role,
-      teamId,
+      userLogged,
     );
 
     return new StreamableFile(result.buffer, {

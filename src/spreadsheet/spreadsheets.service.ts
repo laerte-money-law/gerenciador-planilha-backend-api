@@ -7,7 +7,6 @@ import { PaginatedResponseDto } from 'src/shared/dto/paginated-response.dto';
 import { SpreadsheetListItemDto } from './model/dto/spreadsheet-list-item.dto';
 import { SpreadsheetViewResponseDto } from './model/dto/spreadsheet-view-response.dto';
 import { SpreadsheetFiltersDto } from './model/dto/create-spreadsheet-filter.dto';
-import { ImportSpreadsheetUsecase } from './usecase/import-spreadsheet.usecase';
 import { AddColumnInSpreadsheetUseCase } from './usecase/add-column-in-spreadsheet.usecase';
 import { AddColumnDto } from './model/dto/add-column.dto';
 import { AddColumnResponseDto } from './model/dto/add-column.response.dto';
@@ -26,8 +25,10 @@ import { ClientOutputDto } from '../client/model/dto/client.ouput.dto';
 import { ImportSpreadsheetUseCaseV2 } from './usecase/import-spreadsheet.usecaseV2';
 import { User } from '../users/model/user.entity';
 
+import { GetSpreadsheetsUseCase } from './usecase/get-spreadsheets.usecase';
 import { GetSpreadsheetByIdUseCase } from './usecase/get-spreadsheet-by-id.usecase';
 import { MetadataService } from './services/metadata.service';
+import { UserLoggedDto } from '../auth/user-logged.dto';
 
 @Injectable()
 export class SpreadsheetService {
@@ -35,7 +36,6 @@ export class SpreadsheetService {
     private readonly dataSource: DataSource,
     @InjectRepository(SpreadsheetMetadata)
     private readonly metadataRepository: Repository<SpreadsheetMetadata>,
-    private readonly importSpreadsheetUseCase: ImportSpreadsheetUsecase,
     private readonly addColumnInSpreadsheet: AddColumnInSpreadsheetUseCase,
     private readonly deleteColumnInSpreadsheet: DeleteColumnInSpreadsheet,
     private readonly updateSpreadsheetRowUsecase: UpdateSpreadsheetRowUsecase,
@@ -43,27 +43,10 @@ export class SpreadsheetService {
     private readonly deleteSpreadsheetByIdUseCase: DeleteSpreadsheetByIdUseCase,
     private readonly getSpreadsheetInformationUseCase: GetSpreadsheetInformationUseCase,
     private readonly importSpreadsheetUseCaseV2: ImportSpreadsheetUseCaseV2,
+    private readonly getSpreadsheetsUseCase: GetSpreadsheetsUseCase,
     private readonly getSpreadsheetByIdUseCase: GetSpreadsheetByIdUseCase,
     private readonly metadataService: MetadataService,
   ) { }
-
-  async importSpreadsheet(
-    file: Express.Multer.File,
-    userId: number,
-    teamId: number,
-    clientId: number,
-    service: string,
-    status: string,
-  ) {
-    return this.importSpreadsheetUseCase.execute(
-      file,
-      userId,
-      teamId,
-      clientId,
-      service,
-      status,
-    );
-  }
 
   async importSpreadsheetV2(
     user: User,
@@ -81,38 +64,11 @@ export class SpreadsheetService {
   }
 
   async getSpreadsheets(
-    role: Role,
-    teamId: number,
+    userLogged: UserLoggedDto,
     page = 1,
     limit = 15,
   ): Promise<PaginatedResponseDto<SpreadsheetListItemDto>> {
-    const skip = (page - 1) * limit;
-
-    const [items, total] = await this.metadataRepository.findAndCount({
-      where: role === Role.ADMIN ? {} : { team: { id: teamId } },
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-      relations: {
-        team: true,
-        client: true,
-      },
-    });
-
-    return {
-      data: items.map((item) => ({
-        id: item.id,
-        name: item.originalFileName,
-        team: item.team,
-        service: item.service,
-        status: item.status,
-        client: ClientOutputDto.fromEntity(item.client),
-        createdAt: item.createdAt,
-      })),
-      page,
-      limit,
-      total,
-    };
+    return this.getSpreadsheetsUseCase.execute(userLogged, page, limit);
   }
 
   async getSpreadsheetByIdPaginated(
@@ -193,16 +149,17 @@ export class SpreadsheetService {
 
   async getSpreadsheetByIdPaginatedV2(
     spreadsheetId: string,
+    userLogged: UserLoggedDto,
     filters: SpreadsheetFiltersDto,
   ): Promise<SpreadsheetViewResponseDto> {
 
-    return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters);
+    return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters, userLogged);
   }
-  async exportSpreadsheet(spreadsheetId: string, role: string, teamId: number) {
+  async exportSpreadsheet(spreadsheetId: string, userLogged: UserLoggedDto) {
     return await this.exportSpreadsheetUsecase.execute(
       spreadsheetId,
-      role,
-      teamId,
+      userLogged.role,
+      userLogged.teamId as number,
     );
   }
 
@@ -225,8 +182,7 @@ export class SpreadsheetService {
 
   async getSpreadsheetColumns(
     spreadsheetId: string,
-    role: string,
-    teamId: number,
+    userLogged: UserLoggedDto,
   ): Promise<GetSpreadsheetColumnsResponseDto> {
     return this.getSpreadsheetInformationUseCase.execute(spreadsheetId);
   }

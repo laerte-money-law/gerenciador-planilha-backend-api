@@ -28,12 +28,12 @@ export class UserService {
     async getAllUsers(page: number, limit: number): Promise<PaginatedResponseDto<UserResponseDto>> {
         const result = await this.userRepository.getAllUsers(page, limit);
 
-        return {
-            data: result.data.map(user => userMapperToResponseDto(user)),
-            page: result.page,
-            limit: result.limit,
-            total: result.total
-        };
+        return new PaginatedResponseDto(
+            result.data.map(user => userMapperToResponseDto(user)),
+            result.page,
+            result.limit,
+            result.total
+        );
 
     }
 

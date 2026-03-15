@@ -26,7 +26,7 @@ import { InfraModule } from './infra/infra.module';
         username: config.get<string>('DB_USER'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
-        synchronize: false,
+        synchronize: true,
         logging: false,
         options: {
           encrypt: false,
@@ -46,4 +46,4 @@ import { InfraModule } from './infra/infra.module';
     InfraModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
