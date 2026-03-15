@@ -1,5 +1,5 @@
 import { Expose } from "class-transformer";
-import { IsEmail, IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { Role } from "src/security/role/role.enum";
 
 export class CreateUserDto {
@@ -19,7 +19,8 @@ export class CreateUserDto {
 
     @Expose({ name: 'client_id' })
     @IsNumber()
-    clientId: number
+    @IsOptional()
+    clientId?: number
 
     @IsNotEmpty()
     @IsEnum(Role)

@@ -1,6 +1,7 @@
 import { SpreadsheetMetadata } from "../../spreadsheet/model/spreadsheet.metadata.entity"
 import { User } from "../../users/model/user.entity";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Client } from "../../client/model/client.entity";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('team')
 export class Team {
@@ -9,6 +10,10 @@ export class Team {
 
   @Column({ unique: true })
   name: string;
+
+  @ManyToOne(() => Client, (client) => client.teams)
+  @JoinColumn({ name: 'client_id' })
+  client: Client;
 
   @OneToMany(() => User, (user) => user.team)
   users: User[];

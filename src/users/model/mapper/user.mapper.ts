@@ -13,6 +13,7 @@ export const usertMapperToEntity = (userDto: CreateUserDto): User => {
         name: userDto.name,
         email: userDto.email,
         password: userDto.password,
+        role: userDto.role,
         team: { id: userDto.teamId } as Team,
         client: { id: userDto.clientId } as Client
     });

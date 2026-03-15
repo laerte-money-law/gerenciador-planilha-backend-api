@@ -10,9 +10,9 @@ export class TeamRepository {
         private readonly teamRepository: Repository<Team>
     ){}
 
-    async createTeam(teamName: string): Promise<Team>{
+    async createTeam(teamName: string, clientId: number): Promise<Team>{
         try{
-            const newTeam = this.teamRepository.create({name: teamName});
+            const newTeam = this.teamRepository.create({name: teamName, client: { id: clientId } as any});
             return this.teamRepository.save(newTeam);
         }catch(error){
           if(error instanceof QueryFailedError) throw new ConflictException('Team already exists');
@@ -29,7 +29,7 @@ export class TeamRepository {
     async findAllTeams(clientId?: number): Promise<Team[]> {
         if (clientId) {
             return this.teamRepository.find({
-                where: { users: { client: { id: clientId } } }
+                where: { client: { id: clientId } }
             });
         }
         return this.teamRepository.find();

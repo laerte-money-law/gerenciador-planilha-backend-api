@@ -7,6 +7,8 @@ import * as bcrypt from 'bcryptjs';
 import { UserResponseDto } from "../model/dto/user-response.dto";
 import { PaginatedResponseDto } from "src/shared/dto/paginated-response.dto";
 import { UpdateUserDto } from "../model/dto/update-user.dto";
+import { UserLoggedDto } from "src/auth/user-logged.dto";
+import { Role } from "src/security/role/role.enum";
 
 @Injectable()
 export class UserService {
@@ -25,8 +27,13 @@ export class UserService {
         return await this.userRepository.findUserByEmail(email);
     }
 
-    async getAllUsers(page: number, limit: number): Promise<PaginatedResponseDto<UserResponseDto>> {
-        const result = await this.userRepository.getAllUsers(page, limit);
+    async getAllUsers(userLogged: UserLoggedDto, page: number, limit: number): Promise<PaginatedResponseDto<UserResponseDto>> {
+        let clientId: number | undefined;
+        if (userLogged.role === Role.CLIENT) {
+            clientId = userLogged.clientId;
+        }
+
+        const result = await this.userRepository.getAllUsers(page, limit, clientId);
 
         return new PaginatedResponseDto(
             result.data.map(user => userMapperToResponseDto(user)),
