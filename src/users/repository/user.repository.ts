@@ -38,13 +38,15 @@ export class UserRepository {
         }
     }
 
-    async getAllUsers(page: number, limit: number): Promise<PaginatedResponseDto<User>> {
+    async getAllUsers(page: number, limit: number, clientId?: number): Promise<PaginatedResponseDto<User>> {
 
         const skip = (page - 1) * limit;
 
         try {
+            const whereClause = clientId ? { client: { id: clientId } } : {};
 
             const [items, total] = await this.userRepository.findAndCount({
+                where: whereClause,
                 relations: ['team', 'client'],
                 skip,
                 take: limit
