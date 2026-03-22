@@ -22,6 +22,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   redefinePassword(@Body() dto: RedefinePasswordDto, @Req() req: any) {
     const userLogged: UserLoggedDto = req.user;
-    return this.redefinePasswordUseCase.execute(userLogged.sub, dto.password);
+    console.log('usuario logado: ', userLogged);
+    return this.redefinePasswordUseCase.execute(userLogged, dto.password);
   }
 }
