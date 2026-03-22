@@ -4,4 +4,5 @@ export class UserLoggedDto {
   teamId?: number;
   clientId?: number;
   role: string;
+  shouldRedefinePassword: boolean;
 }

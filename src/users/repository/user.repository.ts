@@ -109,6 +109,10 @@ export class UserRepository {
             user.password = await bcrypt.hash(dto.password, 10);
         }
 
+        if (dto.shouldRedefinePassword !== undefined) {
+            user.shouldRedefinePassword = dto.shouldRedefinePassword;
+        }
+
         return this.userRepository.save(user);
     }
 
