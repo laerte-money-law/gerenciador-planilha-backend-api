@@ -10,7 +10,7 @@ export class RedefinePasswordUseCase {
 
   async execute(user: UserLoggedDto, password: string): Promise<void> {
     this.logger.log('Redefinindo senha do usuario: ', user.email);
-    await this.userService.updateUser(user.id, {
+    await this.userService.updateUser(user.userId, {
       password,
       shouldRedefinePassword: false,
     });
