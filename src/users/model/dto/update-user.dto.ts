@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Expose } from 'class-transformer';
 import { Role } from 'src/security/role/role.enum';
 
@@ -25,4 +25,7 @@ export class UpdateUserDto {
   @IsEnum(Role)
   role?: Role;
 
+  @IsOptional()
+  @IsBoolean()
+  shouldRedefinePassword?: boolean;
 }

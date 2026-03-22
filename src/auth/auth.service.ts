@@ -1,8 +1,4 @@
-import {
-
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/users/service/user.service';
 import { User } from 'src/users/model/user.entity';
@@ -21,7 +17,7 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.userService.findUserByEmail(email);
     if (!user) throw new UnauthorizedException('Invalid credentials');
-  
+
     const passwordMatches = await bcrypt.compare(password, user.password);
 
     if (!passwordMatches) {
@@ -40,6 +36,7 @@ export class AuthService {
           teamId: user.team?.id,
           clientId: user.client?.id,
           role: user.role,
+          shouldRedefinePassword: user.shouldRedefinePassword,
         },
         {
           expiresIn: '7d',

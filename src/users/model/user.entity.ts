@@ -29,4 +29,7 @@ export class User {
 
   @Column({ name: 'role', nullable: true, default: "USER" })
   role: string;
+
+  @Column({ name: 'should_redefine_password', default: true })
+  shouldRedefinePassword: boolean;
 }
