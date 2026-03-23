@@ -71,88 +71,11 @@ export class SpreadsheetService {
     return this.getSpreadsheetsUseCase.execute(userLogged, page, limit);
   }
 
-  async getSpreadsheetByIdPaginated(
-    spreadsheetId: string,
-    role: string,
-    teamId: number,
-    filters: SpreadsheetFiltersDto,
-  ): Promise<SpreadsheetViewResponseDto> {
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 15;
-    const offset = (page - 1) * limit;
-
-    console.log("SPREADSHEET ID: " + spreadsheetId);
-
-    const metadata = await this.metadataService.getMetadata(spreadsheetId);
-
-    console.log("SPREADSHEET metadata: " + metadata);
-
-    const tableName = metadata.tableName;
-
-    const baseQb = this.dataSource.createQueryBuilder().from(tableName, 't');
-    console.log('aqui')
-
-    if (filters.status) {
-      baseQb.andWhere('t.ML_STATUS = :status', {
-        status: filters.status,
-      });
-    } else {
-      baseQb.andWhere('t.status_ml != :status', {
-        status: 'VALIDADO',
-      });
-    }
-
-    /*if (filters.search) {
-      baseQb.andWhere('t.processo LIKE :search', {
-        search: `%${filters.search}%`,
-      });
-    }*/
-
-    const countResult = await baseQb
-      .clone()
-      .select('COUNT(1)', 'total')
-      .getRawOne<{ total: number }>();
-
-    const total = Number(countResult?.total ?? 0);
-
-    const rows = await baseQb
-      .clone()
-      .select('*')
-      .orderBy('t.ML_ID', 'ASC')
-      .offset(offset)
-      .limit(limit)
-      .getRawMany();
-
-    const columns =
-      rows.length > 0
-        ? Object.keys(rows[0]).filter(
-          (col) =>
-            ![
-              'created_by',
-              'last_updated_by',
-              'team_id',
-              'created_at',
-            ].includes(col),
-        )
-        : [];
-
-    return {
-      id: metadata.id,
-      name: metadata.originalFileName,
-      columns,
-      rows,
-      page,
-      limit,
-      total,
-    };
-  }
-
   async getSpreadsheetByIdPaginatedV2(
     spreadsheetId: string,
     userLogged: UserLoggedDto,
     filters: SpreadsheetFiltersDto,
   ): Promise<SpreadsheetViewResponseDto> {
-
     return this.getSpreadsheetByIdUseCase.execute(spreadsheetId, filters, userLogged);
   }
   async exportSpreadsheet(spreadsheetId: string, userLogged: UserLoggedDto) {

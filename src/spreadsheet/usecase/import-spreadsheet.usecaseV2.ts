@@ -3,17 +3,12 @@ import { SpreadsheetMetadata } from '../model/spreadsheet.metadata.entity';
 import { Repository } from 'typeorm';
 import { ERROR_MESSAGES } from '../../shared/exceptions/error-messages.enum';
 import { ImportSpreadsheetDto } from '../model/dto/import-spreadsheet.dto';
-import { User } from '../../users/model/user.entity';
 import { Client } from '../../client/model/client.entity';
 import { Team } from '../../team/model/team.entity';
 import { NotFoundAppError } from '../../shared/exceptions/custom/not-found.error';
-import { SpreadsheetStatusEnum } from '../model/enum/spreadsheet-status.enum';
-import { DynamicTableRepository } from '../../infra/repository/dynamic-table.repository';
-import { ImportSpreadsheetFactory } from '../infra/spreadsheet-import.factory';
 import { Logger } from '@nestjs/common';
-import { COLUMN_TYPE, ColumnDto } from '../model/dto/column.dto';
-import { ROW_STATUS } from '../model/enum/row-status.enum';
 import { CreateSpreadsheetService } from '../services/create-spreadsheet.service';
+import { SpreadsheetStatusEnum } from '../model/enum/spreadsheet-status-view.enum';
 
 export class ImportSpreadsheetUseCaseV2 {
   private readonly logger = new Logger(ImportSpreadsheetUseCaseV2.name);
@@ -58,6 +53,7 @@ export class ImportSpreadsheetUseCaseV2 {
     return {
       id: metadata.id,
       name: metadata.originalFileName,
+      //TODO: retornar quantidade de linhas importadas
       rowsImported: 999,
     };
   }

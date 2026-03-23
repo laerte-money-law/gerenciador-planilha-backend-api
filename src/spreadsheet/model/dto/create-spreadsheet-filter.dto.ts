@@ -1,16 +1,15 @@
 import { IsEnum, IsInt, IsOptional, IsString, Min } from "class-validator";
-import { SpreadsheetStatusEnum } from "../enum/spreadsheet-status.enum";
 import { Type } from "class-transformer";
-import { ROW_STATUS } from '../enum/row-status.enum';
+import { SpreadsheetView } from "../enum/spreadsheet-status-view.enum";
 
 export class SpreadsheetFiltersDto {
     @IsOptional()
     @IsString()
     search?: string;
-
+    
     @IsOptional()
-    @IsEnum(ROW_STATUS)
-    status?: ROW_STATUS;
+    @IsEnum(SpreadsheetView)
+    view?: 'inicial' | 'pendente' | 'analise' | 'concluido';
 
     @IsOptional()
     @Type(() => Number)

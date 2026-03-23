@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ColumnDto } from '../../spreadsheet/model/dto/column.dto';
 import { GetPaginatedData } from '../../spreadsheet/model/dto/get-paginated-data';
 import { ML_COLUMN_ID, ML_COLUMN_STATUS } from '../../spreadsheet/constants';
+import { ROW_STATUS } from 'src/spreadsheet/model/enum/row-status.enum';
 
 @Injectable()
 export class SqlBuilderService {
@@ -42,7 +43,17 @@ export class SqlBuilderService {
 
     query += this.buildWhereCondition(getPaginatedDataDTO);
 
-    query += ` ORDER BY [${ML_COLUMN_ID}] ASC`;
+     query += `
+      ORDER BY 
+        CASE 
+        WHEN [${ML_COLUMN_STATUS}] IS NULL OR [${ML_COLUMN_STATUS}] = '' THEN 1
+        WHEN [${ML_COLUMN_STATUS}] = 'EM ANÁLISE' THEN 2
+        WHEN [${ML_COLUMN_STATUS}] = 'COM PENDÊNCIA' THEN 3
+        ELSE 4
+      END,
+      [${ML_COLUMN_ID}] ASC
+    `;
+
     query += ` OFFSET ${finalOffset} ROWS FETCH NEXT ${limit} ROWS ONLY;`;
 
     return query;
@@ -52,9 +63,18 @@ export class SqlBuilderService {
     const { status, notStatus, search, } = getDataDTO
     const conditions: string[] = [];
 
-    if (status) {
-      conditions.push(`[${ML_COLUMN_STATUS}] = '${status}'`);
-    }
+    if (getDataDTO.isInitialView) {
+    conditions.push(`
+      (
+        [${ML_COLUMN_STATUS}] = '${ROW_STATUS.EM_ANALISE}'
+        OR [${ML_COLUMN_STATUS}] IS NULL
+        OR [${ML_COLUMN_STATUS}] = ''
+      )
+    `);
+  } else if (status && status.length > 0) {
+    const statusList = status.map(s => `'${s}'`).join(', ');
+    conditions.push(`[${ML_COLUMN_STATUS}] IN (${statusList})`);
+  }
 
     if (notStatus) {
       conditions.push(`[${ML_COLUMN_STATUS}] <> '${notStatus}'`);
