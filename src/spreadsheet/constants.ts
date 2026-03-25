@@ -12,9 +12,10 @@ export const ML_COLUMN_USER_ATRIBUIDO = 'ML_USER_ATRIBUIDO';
 /**
  * MoneyLaw GEP - Default columns added to every dynamic spreadsheet table.
  * These columns are prepended to the user-defined columns during table creation.
+ * ML_STATUS must be empty during the import process and will be updated later by the system based on the analysis of each row
  */
 export const MONEY_LAW_GEP_DEFAULT_COLUMNS: ColumnDto[] = [
   new ColumnDto(ML_COLUMN_ID, COLUMN_TYPE.PRIMARY_KEY),
-  new ColumnDto(ML_COLUMN_STATUS, COLUMN_TYPE.STATUS, ROW_STATUS.AG_VALIDACAO),
+  new ColumnDto(ML_COLUMN_STATUS, COLUMN_TYPE.STATUS, ''),
   new ColumnDto(ML_COLUMN_USER_ATRIBUIDO, COLUMN_TYPE.STRING, ''),
 ];
