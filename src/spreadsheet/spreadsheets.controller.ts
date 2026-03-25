@@ -119,9 +119,8 @@ export class SpreadsheetController {
   }
 
   @Get('/:spreadsheetId/export')
-  async exportSpreadsheet(@Param('id') id: string, @Req() req: any) {
+  async exportSpreadsheet(@Param('spreadsheetId') id: string, @Req() req: any) {
     const userLogged: UserLoggedDto = req.user;
-
     const result = await this.spreadsheetService.exportSpreadsheet(
       id,
       userLogged,
