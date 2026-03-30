@@ -9,10 +9,14 @@ export class SqlBuilderService {
   DELETE_TABLE(tableName: string): string {
     return `DROP TABLE IF EXISTS dbo.${tableName};`;
   }
+  
 
   GET_TABLE_COLUMNS(tableName: string): string {
-    return `SELECT TOP 1 * FROM dbo.[${tableName}];`;
-  }
+    console.log(`Generating SQL to get columns for table '${tableName}'`)
+    return `SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_NAME = '${tableName}'`
+    }
 
   CREATE_TABLE(tableName: string, columns: ColumnDto[]): string {
     // Todo: validate column name duplication? add normalization
@@ -42,7 +46,6 @@ export class SqlBuilderService {
     const finalOffset = (page - 1) * limit;
 
     query += this.buildWhereCondition(getPaginatedDataDTO);
-
      query += `
       ORDER BY 
         CASE 
@@ -62,7 +65,8 @@ export class SqlBuilderService {
   private buildWhereCondition(getDataDTO: GetPaginatedData) {
     const { status, notStatus, search, } = getDataDTO
     const conditions: string[] = [];
-
+    console.log('buildWhereCondition - getDataDTO: ', getDataDTO);
+  
     if (getDataDTO.isInitialView) {
     conditions.push(`
       (
@@ -79,10 +83,22 @@ export class SqlBuilderService {
     if (notStatus) {
       conditions.push(`[${ML_COLUMN_STATUS}] <> '${notStatus}'`);
     }
+    if (search?.trim()) {
+      const normalizedSearch = search.trim().replace(/'/g, "''");
 
-    if (search) {
-      // Logic for search can be added here
-      // conditions.push(`processo LIKE '%${search}%'`);
+      const searchableColumns = getDataDTO.allColumns.filter(col =>
+        col.toLowerCase().includes('processo') ||
+        col.toLowerCase().includes('autor')
+      );
+    
+      console.log(searchableColumns)
+      if (searchableColumns.length > 0) {
+        const likeConditions = searchableColumns.map(
+          col => `[${col}] COLLATE Latin1_General_CI_AI LIKE '%${normalizedSearch}%'`
+        );
+
+        conditions.push(`(${likeConditions.join(' OR ')})`);
+      }
     }
 
     if (conditions.length > 0) {
