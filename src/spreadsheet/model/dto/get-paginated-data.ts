@@ -9,11 +9,11 @@ export class GetPaginatedData {
   search?: string;
   isInitialView?: boolean;
 
-  constructor(filters: SpreadsheetFiltersDto) {
+  constructor(filters: SpreadsheetFiltersDto, public allColumns: string[]) {
     this.page = filters.page;
     this.limit = filters.limit;
     this.search = filters.search;
-
+    this.allColumns = allColumns;
     switch (filters.view) {
       case 'inicial':
         this.status = [ROW_STATUS.EM_ANALISE];

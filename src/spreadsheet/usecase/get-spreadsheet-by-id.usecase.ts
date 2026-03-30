@@ -28,8 +28,10 @@ export class GetSpreadsheetByIdUseCase {
     this.validateUserAccess(metadata, userLogged);
 
     const tableName = metadata.tableName;
+    const allColumns = await this.dynamicTableRepository.getTableColumns(tableName);
 
-    const getDataDTO = new GetPaginatedData(filters)
+
+    const getDataDTO = new GetPaginatedData(filters, allColumns)
 
     const [rows, total] = await Promise.all([
       this.dynamicTableRepository.getDataTable(tableName, getDataDTO),

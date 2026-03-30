@@ -27,7 +27,7 @@ export class DynamicTableRepository {
       query,
       `Error while fetching columns for table '${tableName}'`,
     );
-    return rowResult.length > 0 ? Object.keys(rowResult[0]) : [];
+    return rowResult.map(row => row.COLUMN_NAME);
   }
 
   async createTable(tableName: string, columns: ColumnDto[]): Promise<void> {
@@ -54,11 +54,11 @@ export class DynamicTableRepository {
     tableName: string,
     getPaginatedDataDTO: GetPaginatedData,
   ): Promise<any[]> {
+    
     const query = this.sqlBuilderService.GET_PAGINATED_DATA(
       tableName,
       getPaginatedDataDTO,
     );
-
     return this.executeQuery<any[]>(
       query,
       `Error while fetching paginated data from ${tableName}`,
